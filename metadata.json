@@ -1,0 +1,6 @@
+{
+  "name": "SkyHook",
+  "description": "Industrial yard logistics and fabrication tracking system for Simcote Manufacturing.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

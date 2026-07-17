@@ -1,0 +1,31 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+}
+
+/* Custom scrollbars for high density consoles */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Smooth SVG transitions for the interactive plant layout floorplan */
+#plant-layout-svg rect,
+#plant-layout-svg text,
+#plant-layout-svg tspan,
+#plant-layout-svg circle {
+  transition: fill 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+              stroke 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+              stroke-width 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+              fill-opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+              stroke-opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+              filter 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+              r 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
