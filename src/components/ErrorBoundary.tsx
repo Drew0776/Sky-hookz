@@ -1,8 +1,7 @@
-import React, { ErrorInfo, ReactNode } from 'react';
-import { AlertCircle, RefreshCw } from 'lucide-react';
+import React, { ReactNode } from 'react';
 
 interface Props {
-  children?: ReactNode;
+  children: ReactNode;
 }
 
 interface State {
@@ -10,49 +9,41 @@ interface State {
   error: Error | null;
 }
 
-export default class ErrorBoundary extends React.Component<Props, State> {
-  public state: State = {
-    hasError: false,
-    error: null
-  };
+class ErrorBoundary extends React.Component<Props, State> {
+  constructor(props: Props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
 
-  public static getDerivedStateFromError(error: Error): State {
+  static getDerivedStateFromError(error: Error): State {
     return { hasError: true, error };
   }
 
-  public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('Uncaught error in SkyHook Exception Boundary:', error, errorInfo);
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error('Error caught by boundary:', error, errorInfo);
   }
 
-  private handleReset = () => {
-    (this as any).setState({ hasError: false, error: null });
-    window.location.href = '/';
-  };
-
-  public render() {
-    if ((this as any).state.hasError) {
+  render() {
+    if (this.state.hasError) {
       return (
-        <div className="flex min-h-screen flex-col items-center justify-center bg-slate-950 p-6 text-slate-100" id="error-boundary-screen">
-          <div className="w-full max-w-md rounded-2xl border border-rose-500/20 bg-slate-900 p-6 shadow-2xl shadow-rose-950/20 text-center">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-rose-500/10 text-rose-500 mb-4">
-              <AlertCircle className="h-6 w-6" />
-            </div>
-            <h1 className="font-mono text-base font-bold tracking-tight text-white mb-2">FABRICATION LINE HALT</h1>
-            <p className="text-xs text-slate-400 font-mono tracking-wide leading-relaxed mb-6">
-              A critical software failure has halted the terminal interface: {((this as any).state.error)?.message || 'Unknown Context Offset Error'}
-            </p>
+        <div className="flex flex-col items-center justify-center min-h-screen bg-red-950 text-white p-4">
+          <div className="max-w-md text-center">
+            <div className="font-mono text-xs text-red-400 bg-red-950/50 border border-red-700 rounded px-3 py-2 mb-4 font-bold uppercase tracking-wider">⚠️ SYSTEM ERROR</div>
+            <h1 className="text-2xl font-bold mb-4 font-mono">CRITICAL FAILURE</h1>
+            <p className="text-sm text-red-200 font-mono mb-4">{this.state.error?.message}</p>
             <button
-              onClick={this.handleReset}
-              className="inline-flex items-center gap-2 rounded-lg bg-amber-500 px-4 py-2 text-xs font-mono font-bold text-slate-950 hover:bg-amber-400 focus:outline-hidden transition-colors cursor-pointer w-full justify-center"
+              onClick={() => window.location.reload()}
+              className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold py-2 px-4 rounded font-mono text-xs uppercase"
             >
-              <RefreshCw className="h-4 w-4" />
-              <span>RESTART CONSOLE TERMINAL</span>
+              Restart System
             </button>
           </div>
         </div>
       );
     }
 
-    return (this as any).props.children;
+    return this.props.children;
   }
 }
+
+export default ErrorBoundary;
