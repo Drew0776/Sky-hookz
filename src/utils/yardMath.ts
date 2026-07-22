@@ -105,14 +105,21 @@ export const getRouteAnalysisByZones = (
           desc: `Zone ${zone.label} is near maximum storage density (${weight.toLocaleString()} lbs, ${(ratio*100).toFixed(0)}% capacity). High stacks violate overhead clearance drop guidelines.`
         });
       } else if (ratio >= warningThreshold) {
-        zoneSlewDelay += 3.0;
-        obstructions.push({
-          zoneId,
-          name: zone.label,
-          type: 'CONSTRAINT',
-          reason: 'HIGH LOAD DENSITY',
-          desc: `Elevated pile mass density (${weight.toLocaleString()} lbs, ${(ratio*100).toFixed(0)}% capacity). Gantry crane must operate in cautionary slow-speed mode.`
-        });
+        // ASTM A934 waives elevated load density delays as it is prioritized for uninterrupted high-speed transit
+        const targetBundle = bundlesData.find(b => b.location === originId);
+        const isA934 = targetBundle?.specification === 'ASTM_A934';
+        if (isA934) {
+          zoneSlewDelay += 0.0; // Zero intermediate slow-speed penalty
+        } else {
+          zoneSlewDelay += 3.0;
+          obstructions.push({
+            zoneId,
+            name: zone.label,
+            type: 'CONSTRAINT',
+            reason: 'HIGH LOAD DENSITY',
+            desc: `Elevated pile mass density (${weight.toLocaleString()} lbs, ${(ratio*100).toFixed(0)}% capacity). Gantry crane must operate in cautionary slow-speed mode.`
+          });
+        }
       }
 
       densitySlewPenalty += zoneSlewDelay;

@@ -1,16 +1,16 @@
 import { Bundle, Job, Operator, Exception, ShiftMessage, ActivityEvent } from './types';
 
 export const INITIAL_JOBS: Job[] = [
-  { id: 'JOB-01', customerName: 'Kraus-Anderson', projectName: 'St. Paul Sewer Expansion', orderNumber: 'KA-9021-B', totalBundles: 6, completedBundles: 2, createdAt: '2026-05-24T06:00:00Z' },
-  { id: 'JOB-02', customerName: 'McGough Construction', projectName: 'Saint Paul Academy Gym', orderNumber: 'MCG-4451-A', totalBundles: 5, completedBundles: 1, createdAt: '2026-05-24T06:30:00Z' },
-  { id: 'JOB-03', customerName: 'PCL Construction', projectName: 'Twin Cities LRT Transit Hub', orderNumber: 'PCL-1109-X', totalBundles: 6, completedBundles: 1, createdAt: '2026-05-24T07:00:00Z' },
-  { id: 'JOB-04', customerName: 'Adolfson & Peterson', projectName: 'Ramsey County Medical Center', orderNumber: 'AP-2830-E', totalBundles: 5, completedBundles: 0, createdAt: '2026-05-24T07:15:00Z' },
-  { id: 'JOB-05', customerName: 'M.A. Mortenson', projectName: 'Minneapolis Arena Parking Deck', orderNumber: 'MORT-7712-F', totalBundles: 5, completedBundles: 3, createdAt: '2026-05-24T07:45:00Z' },
-  { id: 'JOB-06', customerName: 'Ryan Companies', projectName: 'Lowertown Loft Foundation', orderNumber: 'RYN-8821-C', totalBundles: 4, completedBundles: 0, createdAt: '2026-05-24T08:00:00Z' },
-  { id: 'JOB-07', customerName: 'Knutson Construction', projectName: 'Capitol Parking Garage Stairs', orderNumber: 'KN-3051-M', totalBundles: 5, completedBundles: 2, createdAt: '2026-05-24T08:30:00Z' }
+  { id: 'JOB-01', customerName: 'Kraus-Anderson', projectName: 'St. Paul Sewer Expansion', orderNumber: 'KA-9021-B', totalBundles: 6, completedBundles: 2, createdAt: '2026-05-24T06:00:00Z', plantLocation: 'St. Paul, MN' },
+  { id: 'JOB-02', customerName: 'McGough Construction', projectName: 'Saint Paul Academy Gym', orderNumber: 'MCG-4451-A', totalBundles: 5, completedBundles: 1, createdAt: '2026-05-24T06:30:00Z', plantLocation: 'St. Paul, MN' },
+  { id: 'JOB-03', customerName: 'PCL Construction', projectName: 'Twin Cities LRT Transit Hub', orderNumber: 'PCL-1109-X', totalBundles: 6, completedBundles: 1, createdAt: '2026-05-24T07:00:00Z', plantLocation: 'Marion, OH' },
+  { id: 'JOB-04', customerName: 'Adolfson & Peterson', projectName: 'Ramsey County Medical Center', orderNumber: 'AP-2830-E', totalBundles: 5, completedBundles: 0, createdAt: '2026-05-24T07:15:00Z', plantLocation: 'Marion, OH' },
+  { id: 'JOB-05', customerName: 'M.A. Mortenson', projectName: 'Minneapolis Arena Parking Deck', orderNumber: 'MORT-7712-F', totalBundles: 5, completedBundles: 3, createdAt: '2026-05-24T07:45:00Z', plantLocation: 'Sedalia, MO' },
+  { id: 'JOB-06', customerName: 'Ryan Companies', projectName: 'Lowertown Loft Foundation', orderNumber: 'RYN-8821-C', totalBundles: 4, completedBundles: 0, createdAt: '2026-05-24T08:00:00Z', plantLocation: 'Sedalia, MO' },
+  { id: 'JOB-07', customerName: 'Knutson Construction', projectName: 'Capitol Parking Garage Stairs', orderNumber: 'KN-3051-M', totalBundles: 5, completedBundles: 2, createdAt: '2026-05-24T08:30:00Z', plantLocation: 'St. Paul, MN' }
 ];
 
-export const INITIAL_BUNDLES: Bundle[] = [
+const RAW_INITIAL_BUNDLES: any[] = [
   // JOB-01: Kraus-Anderson (6 bundles) - Epoxy Rebar
   {
     id: 'TG-101', tagId: 'TG-101', jobId: 'JOB-01', mark: 'MK-11', grade: 'Epoxy', barSize: '#8', length: 30, weight: 2670, isEpoxy: true,
@@ -205,6 +205,46 @@ export const INITIAL_BUNDLES: Bundle[] = [
     status: 'RAW', location: 'Raw-SW', updatedAt: '2026-05-24T15:25:00Z'
   }
 ];
+
+export const INITIAL_BUNDLES: Bundle[] = RAW_INITIAL_BUNDLES.map((b, idx) => {
+  const job = INITIAL_JOBS.find(j => j.id === b.jobId);
+  const plantLocation = job ? job.plantLocation : 'St. Paul, MN';
+  const heatNumber = `HT-2026-${3410 + idx}`;
+  const millCertUrl = `https://certificates.simcote.com/mill-cert-${3410 + idx}.pdf`;
+  
+  // ASTM A934 is purple coating, A775 is green coating.
+  const specification = b.isEpoxy 
+    ? (idx % 2 === 1 ? 'ASTM_A934' : 'ASTM_A775') 
+    : 'ASTM_A775';
+    
+  // Tomorrow is 1 day. Let's make some tomorrow, some next week, some next month.
+  // We offset shipping by some days.
+  let daysOffset = 2; // default 2 days (tomorrow/soon)
+  if (idx % 4 === 1) daysOffset = 1; // tomorrow!
+  if (idx % 4 === 2) daysOffset = 7; // next week
+  if (idx % 4 === 3) daysOffset = 35; // next month! (August/September)
+  
+  const shippingDate = new Date(Date.now() + daysOffset * 24 * 60 * 60 * 1000).toISOString();
+  
+  // UV Exposure testing: let's set stagedAt to 26 days ago for certain epoxy bundles sitting in outdoor areas (racks/raw stock)
+  let stagedAt = b.stagedAt;
+  const isOutdoor = b.location.startsWith('Rack') || b.location.startsWith('Door') || b.location === 'Raw-SW' || b.location === 'North-End';
+  if (b.isEpoxy && isOutdoor && idx % 3 === 0) {
+    stagedAt = new Date(Date.now() - 26 * 24 * 60 * 60 * 1000).toISOString();
+  } else if (!stagedAt && isOutdoor) {
+    stagedAt = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString();
+  }
+
+  return {
+    ...b,
+    plantLocation,
+    heatNumber,
+    millCertUrl,
+    specification,
+    shippingDate,
+    stagedAt
+  };
+});
 
 export const INITIAL_OPERATORS: Operator[] = [
   { id: 'OP-1', name: 'John Doe', role: 'CRANE_OPERATOR', isActive: true, currentStation: 'Crane-NE' },

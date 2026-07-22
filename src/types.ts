@@ -1,7 +1,9 @@
-export type BundleStatus = 'RAW' | 'STAGED' | 'BENDING' | 'LOADED' | 'RACKED' | 'COATED';
+export type BundleStatus = 'RAW' | 'STAGED' | 'BENDING' | 'LOADED' | 'RACKED' | 'COATED' | 'REJECTED';
 export type RebarGrade = 'Black' | 'Epoxy';
 export type TrailerSize = 'Flatbed' | 'Step Deck';
 export type UserRole = 'CRANE_OPERATOR' | 'SHEAR_OPERATOR' | 'BENDER' | 'ADMIN';
+export type PlantLocation = 'St. Paul, MN' | 'Marion, OH' | 'Sedalia, MO';
+export type ASTMSpecification = 'ASTM_A775' | 'ASTM_A934';
 
 export interface Bundle {
   id: string;
@@ -20,6 +22,11 @@ export interface Bundle {
   trailerSize?: TrailerSize;
   stagedAt?: string;
   updatedAt: string;
+  plantLocation: PlantLocation;
+  heatNumber: string;
+  millCertUrl: string;
+  specification: ASTMSpecification;
+  shippingDate: string;
 }
 
 export interface Job {
@@ -30,6 +37,7 @@ export interface Job {
   totalBundles: number;
   completedBundles: number;
   createdAt: string;
+  plantLocation: PlantLocation;
 }
 
 export interface ActivityEvent {
@@ -48,11 +56,17 @@ export interface Exception {
   timestamp: string;
   tagId: string;
   operatorName: string;
-  type: string; // e.g., "Misplaced Bar", "Fabrication Error", "Coating Issue"
+  type: string; // e.g., "Misplaced Bar", "Fabrication Error", "Coating Issue", "Quality Audit"
   description: string;
   status: 'OPEN' | 'RESOLVED';
   resolvedAt?: string;
   resolvedBy?: string;
+  qualityAudit?: {
+    coatingDamagePct: number;
+    damagedFootSection: string;
+    inspectorName: string;
+    inspectionDate: string;
+  };
 }
 
 export interface Operator {
@@ -77,6 +91,8 @@ export interface DashboardMetrics {
   stagedCount: number;
   loadedCount: number;
   rackedCount: number;
+  rejectedCount?: number;
+  uvHazardsCount?: number;
   firstShiftThroughput: number; // tons/hours processed
   secondShiftThroughput: number;
 }

@@ -623,6 +623,47 @@ export default function BundleDetailModal({ bundle, onClose }: BundleDetailModal
 
           {/* Right Column: Specifications & Metadata (5cols) */}
           <div className="lg:col-span-5 space-y-6">
+
+            {bundle.status === 'REJECTED' && (
+              <div className="bg-rose-500/10 border border-rose-500/30 p-4 rounded-xl text-xxs font-mono text-rose-400 space-y-2 animate-pulse">
+                <div className="font-bold uppercase tracking-wider text-[10px] flex items-center gap-1.5 text-rose-500">
+                  ⚠️ ASTM QC REJECTION HARD-STOP
+                </div>
+                <div>
+                  This bundle has failed coating compliance audits and is locked in the <span className="font-bold underline text-rose-300">REJECTED</span> state. Handle-induced coating damage exceeds the 2% maximum allowed limit. Gantry crane movement is prohibited until engineering resolution is documented.
+                </div>
+              </div>
+            )}
+
+            {(() => {
+              const isOutdoor = bundle.location.startsWith('Rack') || bundle.location.startsWith('Door') || bundle.location === 'Raw-SW' || bundle.location === 'North-End';
+              if (bundle.isEpoxy && isOutdoor && bundle.stagedAt) {
+                const days = Math.round((Date.now() - new Date(bundle.stagedAt).getTime()) / (1000 * 60 * 60 * 24));
+                if (days >= 25) {
+                  return (
+                    <div className="bg-amber-500/10 border border-amber-500/30 p-4 rounded-xl text-xxs font-mono text-amber-400 space-y-2 animate-pulse">
+                      <div className="font-bold uppercase tracking-wider text-[10px] flex items-center gap-1.5 text-amber-500">
+                        ☀️ UV HAZARD EXPOSURE ALERT
+                      </div>
+                      <div>
+                        This epoxy-coated bundle has been exposed outdoors for <span className="font-bold text-white text-xs">{days} days</span>. ASTM guidelines require covering with an opaque material within 30 days to prevent chemical ultraviolet degradation.
+                      </div>
+                    </div>
+                  );
+                }
+              }
+              return null;
+            })()}
+
+            <div className="bg-slate-950 p-4 border border-slate-900 rounded-xl font-mono text-xxs space-y-2">
+              <span className="text-[8px] text-slate-500 uppercase block font-black">LOGISTICS SCHEDULE</span>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-400">Expected Shipping Date:</span>
+                <span className="text-right font-bold text-teal-400">
+                  {new Date(bundle.shippingDate).toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}
+                </span>
+              </div>
+            </div>
             
             {/* Technical Mill Table */}
             <div className="space-y-2">
@@ -639,7 +680,34 @@ export default function BundleDetailModal({ bundle, onClose }: BundleDetailModal
                 <div className="p-3 grid grid-cols-2 text-xxs font-mono">
                   <span className="text-slate-400">ASTM Grade Spec:</span>
                   <span className="text-right font-bold text-white">
-                    {bundle.isEpoxy ? 'ASTM A775 / A615M Gr.60' : 'ASTM A615 / A615M Gr.60'}
+                    {bundle.isEpoxy 
+                      ? (bundle.specification === 'ASTM_A934' ? 'ASTM A934 Purple Prefab' : 'ASTM A775 Green Epoxy') 
+                      : 'ASTM A615 / A615M Gr.60'}
+                  </span>
+                </div>
+
+                <div className="p-3 grid grid-cols-2 text-xxs font-mono">
+                  <span className="text-slate-400">Manufacturing Plant:</span>
+                  <span className="text-right font-bold text-amber-500">
+                    {bundle.plantLocation || 'St. Paul, MN'}
+                  </span>
+                </div>
+
+                <div className="p-3 grid grid-cols-2 text-xxs font-mono">
+                  <span className="text-slate-400">Steel Heat Number:</span>
+                  <span className="text-right font-bold text-blue-400 flex items-center justify-end gap-1">
+                    <span>{bundle.heatNumber || 'HT-3819A'}</span>
+                    <a 
+                      href={bundle.millCertUrl || '#'} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-[9px] text-teal-400 hover:underline border border-teal-500/30 bg-teal-500/10 px-1 rounded ml-1"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                      }}
+                    >
+                      VIEW CERT 📄
+                    </a>
                   </span>
                 </div>
 

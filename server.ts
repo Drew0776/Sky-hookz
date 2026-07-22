@@ -98,6 +98,10 @@ function getBackendRouteObstructions(
 
   const obstructions: BackendObstruction[] = [];
 
+  // Identify if routing bundle is ASTM A934 (prioritized zero-laydown purple epoxy)
+  const targetBundle = bundlesData.find(b => b.location === originId);
+  const isA934Prioritized = targetBundle?.specification === 'ASTM_A934';
+
   // Simple static thresholds for stacking capacity
   const hazardThreshold = 0.85; // 85% capacity is a critical overload
   const warningThreshold = 0.60; // 60% capacity is elevated
@@ -151,13 +155,16 @@ function getBackendRouteObstructions(
         });
         return;
       } else if (ratio >= warningThreshold) {
-        obstructions.push({
-          zoneId,
-          name: zone.label,
-          type: 'CONSTRAINT',
-          reason: 'HIGH LOAD DENSITY',
-          desc: `Elevated pile mass density (${weight.toLocaleString()} lbs, ${(ratio*100).toFixed(0)}% capacity). Gantry crane must operate in cautionary slow-speed mode.`
-        });
+        // ASTM A934 waives slow-speed warnings because it flies in a prioritized zero-laydown direct corridor!
+        if (!isA934Prioritized) {
+          obstructions.push({
+            zoneId,
+            name: zone.label,
+            type: 'CONSTRAINT',
+            reason: 'HIGH LOAD DENSITY',
+            desc: `Elevated pile mass density (${weight.toLocaleString()} lbs, ${(ratio*100).toFixed(0)}% capacity). Gantry crane must operate in cautionary slow-speed mode.`
+          });
+        }
       }
     }
   });
@@ -239,6 +246,19 @@ app.post('/api/gantry/execute-route', (req, res) => {
   // Find a bundle currently resting at the origin zone
   const targetBundle = bundles.find(b => b.location === originId);
   if (targetBundle) {
+    // Evaluate Dynamic Slotting for Intelligent Crane Sequencing
+    const existingBundles = bundles.filter(b => b.location === destinationId && b.id !== targetBundle.id);
+    if (existingBundles.length > 0) {
+      const newShipping = new Date(targetBundle.shippingDate).getTime();
+      const conflict = existingBundles.find(e => new Date(e.shippingDate).getTime() < newShipping);
+      if (conflict) {
+        res.status(400).json({
+          error: `CRITICAL DYNAMIC SLOTTING VIOLATION: Stacking bundle ${targetBundle.tagId} (ships ${new Date(targetBundle.shippingDate).toLocaleDateString()}) on top of bundle ${conflict.tagId} (ships sooner: ${new Date(conflict.shippingDate).toLocaleDateString()}) at ${destinationId} is blocked to prevent extra crane picks and epoxy scraping.`
+        });
+        return;
+      }
+    }
+
     const oldLoc = targetBundle.location;
     targetBundle.location = destinationId;
     targetBundle.updatedAt = new Date().toISOString();
@@ -331,20 +351,53 @@ app.get('/api/exceptions', (req, res) => {
 
 // POST /api/exceptions
 app.post('/api/exceptions', (req, res) => {
-  const { tagId, operatorName, type, description } = req.body;
+  const { tagId, operatorName, type, description, qualityAudit } = req.body;
   if (!tagId || !operatorName || !type || !description) {
     res.status(400).json({ error: 'Missing required parameters' });
     return;
   }
+  
+  let finalDescription = description;
+  let qcRejected = false;
+
+  const bundle = bundles.find(b => b.tagId === tagId);
+
+  if (type === 'Quality Audit' && qualityAudit) {
+    const damagePct = Number(qualityAudit.coatingDamagePct);
+    if (damagePct > 2) {
+      qcRejected = true;
+      finalDescription = `${description} [AUTOMATIC ASTM REJECTION: Visible coating damage of ${damagePct}% exceeds the 2% maximum allowable limit in the 1-foot section: ${qualityAudit.damagedFootSection}.]`;
+      if (bundle) {
+        bundle.status = 'REJECTED';
+        bundle.updatedAt = new Date().toISOString();
+        logActivity(
+          tagId,
+          operatorName,
+          'QUALITY_REJECT',
+          bundle.location,
+          bundle.location,
+          `REJECTED: Coating damage of ${damagePct}% exceeds 2% ASTM limit.`
+        );
+      }
+    }
+  }
+
   const newEx: Exception = {
     id: `EX-${Date.now()}`,
     timestamp: new Date().toISOString(),
     tagId,
     operatorName,
     type,
-    description,
-    status: 'OPEN'
+    description: finalDescription,
+    status: 'OPEN',
+    qualityAudit: qualityAudit ? {
+      coatingDamagePct: Number(qualityAudit.coatingDamagePct),
+      damagedFootSection: qualityAudit.damagedFootSection,
+      inspectorName: operatorName,
+      inspectionDate: new Date().toISOString().split('T')[0]
+    } : undefined
   };
+  
   exceptions.unshift(newEx);
   notifyClients();
   res.status(201).json(newEx);
@@ -472,6 +525,19 @@ app.post('/api/bundles/:bundleId/drop', (req, res) => {
     const isBlackRack = /Rack\s+J-(19|20|21|22|23|24|25)/.test(location) || /Rack\s+L-(6|7|8|9|10)/.test(location);
     if (isBlackRack) {
       res.status(400).json({ error: 'CRITICAL: Epoxy bar cannot be stored in Black-bar SW racks.' });
+      return;
+    }
+  }
+
+  // Evaluate Dynamic Slotting for Intelligent Crane Sequencing
+  const existingBundles = bundles.filter(b => b.location === location && b.id !== bundle.id);
+  if (existingBundles.length > 0) {
+    const newShipping = new Date(bundle.shippingDate).getTime();
+    const conflict = existingBundles.find(e => new Date(e.shippingDate).getTime() < newShipping);
+    if (conflict) {
+      res.status(400).json({
+        error: `CRITICAL DYNAMIC SLOTTING VIOLATION: Stacking bundle ${bundle.tagId} (ships ${new Date(bundle.shippingDate).toLocaleDateString()}) on top of bundle ${conflict.tagId} (ships sooner: ${new Date(conflict.shippingDate).toLocaleDateString()}) at ${location} is blocked to prevent extra crane picks and epoxy scraping.`
+      });
       return;
     }
   }
@@ -676,6 +742,12 @@ app.post('/api/bundles/bulk-action', (req, res) => {
   }
 });
 
+function isOutdoorZone(zoneId: string): boolean {
+  if (!zoneId) return false;
+  const zid = zoneId.toLowerCase();
+  return zid.includes('rack') || zid.includes('door') || zid.includes('north-end') || zid.includes('stock') || zid.includes('raw') || zid.includes('crane');
+}
+
 // GET /api/dashboard
 app.get('/api/dashboard', (req, res) => {
   const bendingCount = bundles.filter(b => b.status === 'BENDING').length;
@@ -683,6 +755,15 @@ app.get('/api/dashboard', (req, res) => {
   const stagedCount = bundles.filter(b => b.status === 'STAGED').length;
   const loadedCount = bundles.filter(b => b.status === 'LOADED').length;
   const rackedCount = bundles.filter(b => b.status === 'RACKED').length;
+  const rejectedCount = bundles.filter(b => b.status === 'REJECTED').length;
+
+  // UV Hazards are Epoxy bundles sitting in an outdoor zone for >= 25 days
+  const uvHazardsCount = bundles.filter(b => {
+    if (!b.isEpoxy || !b.stagedAt) return false;
+    if (!isOutdoorZone(b.location)) return false;
+    const days = (Date.now() - new Date(b.stagedAt).getTime()) / (1000 * 60 * 60 * 24);
+    return days >= 25;
+  }).length;
 
   // Let's compute actual dynamic tons loaded for shift performance dashboard!
   // First Shift (6:00 to 16:30 -> hours 6 to 16.5)
@@ -710,6 +791,8 @@ app.get('/api/dashboard', (req, res) => {
     stagedCount,
     loadedCount,
     rackedCount,
+    rejectedCount,
+    uvHazardsCount,
     firstShiftThroughput,
     secondShiftThroughput
   });

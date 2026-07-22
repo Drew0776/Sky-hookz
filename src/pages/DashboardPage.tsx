@@ -46,6 +46,21 @@ export default function DashboardPage() {
     const stagedCount = bList.filter(b => b.status === 'STAGED').length;
     const loadedCount = bList.filter(b => b.status === 'LOADED').length;
     const rackedCount = bList.filter(b => b.status === 'RACKED').length;
+    const rejectedCount = bList.filter(b => b.status === 'REJECTED').length;
+
+    // UV Hazards helper for outdoor zone checking
+    const isOutdoorZoneFallback = (zoneId: string): boolean => {
+      if (!zoneId) return false;
+      const zid = zoneId.toLowerCase();
+      return zid.includes('rack') || zid.includes('door') || zid.includes('north-end') || zid.includes('stock') || zid.includes('raw') || zid.includes('crane');
+    };
+
+    const uvHazardsCount = bList.filter(b => {
+      if (!b.isEpoxy || !b.stagedAt) return false;
+      if (!isOutdoorZoneFallback(b.location)) return false;
+      const days = (Date.now() - new Date(b.stagedAt).getTime()) / (1000 * 60 * 60 * 24);
+      return days >= 25;
+    }).length;
 
     let firstShiftWeight = 0;
     let secondShiftWeight = 0;
@@ -69,6 +84,8 @@ export default function DashboardPage() {
       stagedCount,
       loadedCount,
       rackedCount,
+      rejectedCount,
+      uvHazardsCount,
       firstShiftThroughput,
       secondShiftThroughput
     };
@@ -263,6 +280,35 @@ export default function DashboardPage() {
           <span>SYNC LOGISTICS</span>
         </button>
       </div>
+
+      {/* ASTM Compliance & UV Hazard Notifications */}
+      {metrics && ((metrics.uvHazardsCount && metrics.uvHazardsCount > 0) || (metrics.rejectedCount && metrics.rejectedCount > 0)) && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {metrics.rejectedCount && metrics.rejectedCount > 0 ? (
+            <div className="bg-rose-500/10 border border-rose-500/25 p-4 rounded-xl font-mono text-xxs text-rose-400 flex gap-3 items-start animate-fadeIn">
+              <span className="p-1.5 bg-rose-500/20 text-rose-500 rounded-lg text-xs leading-none font-bold shrink-0">⚠️</span>
+              <div className="space-y-1">
+                <div className="font-bold text-rose-500 uppercase tracking-wider text-[10px]">ASTM QC REJECTIONS DETECTED</div>
+                <p className="text-slate-300 font-sans leading-normal">
+                  There are currently <span className="font-bold text-white text-xs">{metrics.rejectedCount}</span> rebar bundle(s) locked in <span className="font-bold underline text-rose-300">REJECTED</span> status due to handle-induced coating damage exceeding the ASTM 2% limit. Crane repositioning is locked for these tags.
+                </p>
+              </div>
+            </div>
+          ) : null}
+
+          {metrics.uvHazardsCount && metrics.uvHazardsCount > 0 ? (
+            <div className="bg-amber-500/10 border border-amber-500/25 p-4 rounded-xl font-mono text-xxs text-amber-400 flex gap-3 items-start animate-fadeIn">
+              <span className="p-1.5 bg-amber-500/20 text-amber-500 rounded-lg text-xs leading-none font-bold shrink-0">☀️</span>
+              <div className="space-y-1">
+                <div className="font-bold text-amber-500 uppercase tracking-wider text-[10px]">UV EXPOSURE HAZARD WARNING</div>
+                <p className="text-slate-300 font-sans leading-normal">
+                  There are currently <span className="font-bold text-white text-xs">{metrics.uvHazardsCount}</span> epoxy bundle(s) residing outdoors for <span className="font-bold text-amber-400">25+ days</span>. ASTM standards mandate shielding with opaque materials within 30 days to prevent ultraviolet degradation.
+                </p>
+              </div>
+            </div>
+          ) : null}
+        </div>
+      )}
 
       {/* Main Grid: Throughput & Queue Telemetries */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

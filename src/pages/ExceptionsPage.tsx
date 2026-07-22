@@ -35,6 +35,8 @@ export default function ExceptionsPage() {
   const [selectedTag, setSelectedTag] = useState('');
   const [selectedType, setSelectedType] = useState('Misplaced Bar');
   const [description, setDescription] = useState('');
+  const [coatingDamagePct, setCoatingDamagePct] = useState('2.5');
+  const [damagedFootSection, setDamagedFootSection] = useState('Section 3');
   
   // Notification states
   const [errMessage, setErrMessage] = useState<string | null>(null);
@@ -107,7 +109,11 @@ export default function ExceptionsPage() {
           tagId: selectedTag,
           operatorName: currentOperator?.name || 'Floor Operator',
           type: selectedType,
-          description: description
+          description: description,
+          qualityAudit: selectedType === 'Quality Audit' ? {
+            coatingDamagePct: Number(coatingDamagePct),
+            damagedFootSection: damagedFootSection
+          } : undefined
         })
       });
 
@@ -322,8 +328,37 @@ export default function ExceptionsPage() {
                   <option value="Bent Spec Error">Bent Spec Error Fabrication Halt</option>
                   <option value="Damaged Coating">Damaged Epoxy Coating Scratch</option>
                   <option value="Machine Breakdown">Processing Machinery Halt</option>
+                  <option value="Quality Audit">Quality Audit (ASTM QC Compliance)</option>
                 </select>
               </div>
+
+              {selectedType === 'Quality Audit' && (
+                <div className="space-y-4 p-3.5 bg-rose-950/20 border border-rose-500/20 rounded-xl">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] uppercase font-mono tracking-wider text-rose-400 block font-bold">Coating Damage Percentage (%)</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      max="100"
+                      value={coatingDamagePct}
+                      onChange={(e) => setCoatingDamagePct(e.target.value)}
+                      className="w-full bg-slate-950 text-slate-200 border border-slate-800 rounded-lg p-2 text-xs font-mono focus:border-rose-500"
+                    />
+                    <p className="text-[9px] text-slate-500 font-mono">ASTM standard automatic REJECTION is triggered if damage &gt; 2.0%.</p>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] uppercase font-mono tracking-wider text-rose-400 block font-bold">Damaged 1-Foot Section ID</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 1-foot section #3"
+                      value={damagedFootSection}
+                      onChange={(e) => setDamagedFootSection(e.target.value)}
+                      className="w-full bg-slate-950 text-slate-200 border border-slate-800 rounded-lg p-2 text-xs font-mono focus:border-rose-500"
+                    />
+                  </div>
+                </div>
+              )}
 
               {/* Accompanying descriptive body */}
               <div className="space-y-1.5">
@@ -379,6 +414,14 @@ export default function ExceptionsPage() {
                       <p className="text-xxs text-slate-300 font-sans leading-normal pt-1.5">
                         {ex.description}
                       </p>
+                      {ex.qualityAudit && (
+                        <div className="mt-2 p-2 bg-rose-950/10 border border-rose-500/10 rounded-lg text-xxs font-mono space-y-1">
+                          <div className="font-bold text-rose-400">🔍 ASTM QC Audit Data:</div>
+                          <div className="text-slate-300">
+                            Coating Damage: <span className={`font-bold ${ex.qualityAudit.coatingDamagePct > 2 ? 'text-rose-500' : 'text-amber-400'}`}>{ex.qualityAudit.coatingDamagePct}%</span> in 1-Foot Section: <span className="text-white font-bold">{ex.qualityAudit.damagedFootSection}</span>
+                          </div>
+                        </div>
+                      )}
                       <div className="flex flex-wrap gap-x-4 gap-y-1 pt-2 text-[10px] text-slate-500 font-mono">
                         <span className="flex items-center gap-1"><Calendar className="h-3.5 w-3.5" /> {new Date(ex.timestamp).toLocaleTimeString()}</span>
                         <span className="flex items-center gap-1"><User className="h-3.5 w-3.5" /> Reporter: {ex.operatorName}</span>
@@ -423,6 +466,11 @@ export default function ExceptionsPage() {
                         <span className="text-slate-600">({ex.type})</span>
                       </div>
                       <p className="text-slate-400 font-sans py-1 leading-normal">{ex.description}</p>
+                      {ex.qualityAudit && (
+                        <div className="my-1.5 p-1.5 bg-slate-900/40 border border-slate-800 rounded-lg text-[10px] font-mono space-y-0.5">
+                          <div className="text-slate-500">ASTM QC: <span className="text-slate-400 font-bold">{ex.qualityAudit.coatingDamagePct}%</span> damage in section <span className="text-slate-400 font-bold">{ex.qualityAudit.damagedFootSection}</span></div>
+                        </div>
+                      )}
                       <span className="text-xxs block text-slate-600">RESOLVED BY {ex.resolvedBy} AT {new Date(ex.resolvedAt!).toLocaleTimeString()}</span>
                     </div>
                     <span className="text-xxs text-emerald-500 flex items-center gap-1 font-bold shrink-0 self-start md:self-center">
