@@ -20,15 +20,30 @@ import {
   statusAfterDrop
 } from './src/yardRules';
 
-// Store state in-memory so modifications persist during runtime
-let bundles: Bundle[] = [...INITIAL_BUNDLES];
-let jobs: Job[] = [...INITIAL_JOBS];
-let operators: Operator[] = [...INITIAL_OPERATORS];
-let exceptions: Exception[] = [...INITIAL_EXCEPTIONS];
-let shiftMessages: ShiftMessage[] = [...INITIAL_SHIFT_MESSAGES];
-let activityEvents: ActivityEvent[] = [...INITIAL_ACTIVITY];
+// Store state in-memory so modifications persist during runtime.
+// Deep copies, so runtime changes never mutate the seed data and the yard can be reset.
+let bundles: Bundle[] = structuredClone(INITIAL_BUNDLES);
+let jobs: Job[] = structuredClone(INITIAL_JOBS);
+let operators: Operator[] = structuredClone(INITIAL_OPERATORS);
+let exceptions: Exception[] = structuredClone(INITIAL_EXCEPTIONS);
+let shiftMessages: ShiftMessage[] = structuredClone(INITIAL_SHIFT_MESSAGES);
+let activityEvents: ActivityEvent[] = structuredClone(INITIAL_ACTIVITY);
 // Per-zone storage limits set from the yard map; zones without an entry use DEFAULT_ZONE_CAPACITY_LBS
 let zoneCapacities: Record<string, number> = {};
+
+/** Restores the yard to the seed data (used by the API tests). */
+export function resetYardState() {
+  bundles = structuredClone(INITIAL_BUNDLES);
+  jobs = structuredClone(INITIAL_JOBS);
+  operators = structuredClone(INITIAL_OPERATORS);
+  exceptions = structuredClone(INITIAL_EXCEPTIONS);
+  shiftMessages = structuredClone(INITIAL_SHIFT_MESSAGES);
+  activityEvents = structuredClone(INITIAL_ACTIVITY);
+  zoneCapacities = {};
+}
+
+// Keep the in-memory activity log bounded on long-running servers
+const MAX_ACTIVITY_EVENTS = 500;
 
 // Active Server-Sent Events (SSE) Client Connections
 let sseClients: Response[] = [];
@@ -72,6 +87,7 @@ function logActivity(tagId: string, operatorName: string, action: string, fromLo
     details
   };
   activityEvents.unshift(newEvent);
+  if (activityEvents.length > MAX_ACTIVITY_EVENTS) activityEvents.length = MAX_ACTIVITY_EVENTS;
   return newEvent;
 }
 
@@ -124,7 +140,11 @@ app.get('/api/updates', (req, res) => {
   // Send connection confirmation
   res.write(`data: ${JSON.stringify({ type: 'connected' })}\n\n`);
 
+  // Comment lines every 25 s keep proxies and load balancers from closing an idle stream
+  const heartbeat = setInterval(() => res.write(': ping\n\n'), 25000);
+
   req.on('close', () => {
+    clearInterval(heartbeat);
     sseClients = sseClients.filter(c => c !== res);
   });
 });
@@ -686,6 +706,23 @@ app.get('/api/dashboard', (req, res) => {
   res.json(computeDashboardMetrics(bundles, jobs));
 });
 
+// Unknown API routes answer in JSON instead of falling through to the web app
+app.use('/api', (req, res) => {
+  res.status(404).json({ error: `No API route for ${req.method} ${req.originalUrl}.` });
+});
+
+// Malformed JSON bodies and unexpected errors answer in JSON
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  if (err?.type === 'entity.parse.failed') {
+    res.status(400).json({ error: 'Request body is not valid JSON.' });
+    return;
+  }
+  console.error('Unhandled server error:', err);
+  res.status(500).json({ error: 'Unexpected server error.' });
+});
+
+export { app };
+
 // Vite dev integration or production hosting
 async function startServer() {
   if (process.env.NODE_ENV !== 'production') {
@@ -707,4 +744,7 @@ async function startServer() {
   });
 }
 
-startServer();
+// Tests import the app without opening a port
+if (process.env.SKYHOOK_NO_LISTEN !== '1') {
+  startServer();
+}
