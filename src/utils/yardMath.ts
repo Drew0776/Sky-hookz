@@ -1,15 +1,26 @@
 import { Bundle, Obstruction } from '../types';
 import { zoneCoords } from '../pages/yardMapData';
+import { getZoneCapacity, OVERLOAD_RATIO, SLOW_MODE_RATIO } from '../yardRules';
 
+export interface CrossedZone {
+  id: string;
+  name: string;
+  weight: number;
+  ratio: number;
+  delay: number;
+}
+
+/**
+ * Gantry route analysis shared by the yard map and the server's execute-route interlock.
+ * The gantry runs the runway (x) first, then the bridge (y); map units are feet.
+ * `movingBundleId` is the bundle being carried; when omitted, the first bundle at the origin is assumed.
+ */
 export const getRouteAnalysisByZones = (
   originId: string,
   destinationId: string,
-  materialClass: 'ALL' | 'Epoxy' | 'Black',
   bundlesData: Bundle[],
-  zoneCapacities: Record<string, number>,
-  windSpeed: number = 8,
-  ropeSway: number = 3,
-  bundleLength: number = 30
+  zoneCapacities: Record<string, number> = {},
+  movingBundleId?: string
 ) => {
   const origin = zoneCoords[originId];
   const dest = zoneCoords[destinationId];
@@ -19,7 +30,7 @@ export const getRouteAnalysisByZones = (
     dY: 0,
     obstructions: [] as Obstruction[],
     crossedZonesCount: 0,
-    crossedZonesSummary: [] as { id: string; name: string; weight: number; ratio: number; delay: number }[],
+    crossedZonesSummary: [] as CrossedZone[],
     idealTime: 0,
     predictedTime: 0,
     densitySlewPenalty: 0,
@@ -34,7 +45,6 @@ export const getRouteAnalysisByZones = (
   const x2 = dest.cx + dest.cw / 2;
   const y2 = dest.cy + dest.ch / 2;
 
-  // Track is orthogonal: gantry runs along main horizontal rails, then bridge sleeve moves vertically
   const pathD = `M ${x1} ${y1} L ${x2} ${y1} L ${x2} ${y2}`;
   const dX = Math.abs(x1 - x2);
   const dY = Math.abs(y1 - y2);
@@ -43,15 +53,17 @@ export const getRouteAnalysisByZones = (
     return Math.max(minA, minB) <= Math.min(maxA, maxB);
   };
 
+  // ASTM A934 prefab bundles are prioritized and skip the slow-mode penalty
+  const movingBundle = movingBundleId
+    ? bundlesData.find(b => b.id === movingBundleId)
+    : bundlesData.find(b => b.location === originId);
+  const isA934 = movingBundle?.specification === 'ASTM_A934';
+
   const obstructions: Obstruction[] = [];
-  const crossedZonesSummary: { id: string; name: string; weight: number; ratio: number; delay: number }[] = [];
+  const crossedZonesSummary: CrossedZone[] = [];
   let crossedZonesCount = 0;
   let densitySlewPenalty = 0;
   let hasCriticalInterlock = false;
-
-  // Simple static thresholds for stacking capacity
-  const hazardThreshold = 0.85; // 85% capacity is a critical overload
-  const warningThreshold = 0.60; // 60% capacity is elevated
 
   Object.keys(zoneCoords).forEach((zoneId) => {
     if (zoneId === originId || zoneId === destinationId) return;
@@ -62,75 +74,55 @@ export const getRouteAnalysisByZones = (
     const zTop = zone.cy;
     const zBottom = zone.cy + zone.ch;
 
-    // Horiz segment (x1, y1) to (x2, y1)
-    const minX = Math.min(x1, x2);
-    const maxX = Math.max(x1, x2);
-    const intersectsHoriz = y1 >= zTop && y1 <= zBottom && overlap(minX, maxX, zLeft, zRight);
+    // Runway segment (x1, y1) to (x2, y1)
+    const intersectsHoriz = y1 >= zTop && y1 <= zBottom && overlap(Math.min(x1, x2), Math.max(x1, x2), zLeft, zRight);
+    // Bridge segment (x2, y1) to (x2, y2)
+    const intersectsVert = x2 >= zLeft && x2 <= zRight && overlap(Math.min(y1, y2), Math.max(y1, y2), zTop, zBottom);
 
-    // Vert segment (x2, y1) to (x2, y2)
-    const minY = Math.min(y1, y2);
-    const maxY = Math.max(y1, y2);
-    const intersectsVert = x2 >= zLeft && x2 <= zRight && overlap(minY, maxY, zTop, zBottom);
+    if (!intersectsHoriz && !intersectsVert) return;
 
-    if (intersectsHoriz || intersectsVert) {
-      crossedZonesCount++;
-      const bInZone = bundlesData.filter(b => b.location === zoneId);
-      const weight = bInZone.reduce((sum, b) => sum + (b.weight || 0), 0);
-      const limit = zoneCapacities[zoneId] || 75000;
-      const ratio = weight / limit;
+    crossedZonesCount++;
+    const weight = bundlesData
+      .filter(b => b.location === zoneId)
+      .reduce((sum, b) => sum + (b.weight || 0), 0);
+    const ratio = weight / getZoneCapacity(zoneId, zoneCapacities);
 
-      // Base safe-hover slew delay checking overhead cargo clearances
-      let zoneSlewDelay = 0.5 + (weight / 50000); // realistic movement buffer
+    // Base safe-hover slew delay for overhead cargo clearance
+    let zoneSlewDelay = 0.5 + weight / 50000;
 
-      // 1. Shared Rail Crane obstruction
-      const isCraneType = zoneId.toLowerCase().includes('crane');
-      if (isCraneType) {
-        hasCriticalInterlock = true;
-        zoneSlewDelay += 5.0; // Standard crane coordination slowdown
-        obstructions.push({
-          zoneId,
-          name: zone.label,
-          type: 'CRITICAL',
-          reason: 'SHARED RAIL OCCUPANCY',
-          desc: `Secondary handling equipment is currently located at ${zone.label}. Please confirm gantry path clearance.`
-        });
-      } else if (ratio >= hazardThreshold) {
-        hasCriticalInterlock = true;
-        zoneSlewDelay += 10.0;
-        obstructions.push({
-          zoneId,
-          name: zone.label,
-          type: 'CRITICAL',
-          reason: 'MAX STORAGE CAPACITY EXCEEDED',
-          desc: `Zone ${zone.label} is near maximum storage density (${weight.toLocaleString()} lbs, ${(ratio*100).toFixed(0)}% capacity). High stacks violate overhead clearance drop guidelines.`
-        });
-      } else if (ratio >= warningThreshold) {
-        // ASTM A934 waives elevated load density delays as it is prioritized for uninterrupted high-speed transit
-        const targetBundle = bundlesData.find(b => b.location === originId);
-        const isA934 = targetBundle?.specification === 'ASTM_A934';
-        if (isA934) {
-          zoneSlewDelay += 0.0; // Zero intermediate slow-speed penalty
-        } else {
-          zoneSlewDelay += 3.0;
-          obstructions.push({
-            zoneId,
-            name: zone.label,
-            type: 'CONSTRAINT',
-            reason: 'HIGH LOAD DENSITY',
-            desc: `Elevated pile mass density (${weight.toLocaleString()} lbs, ${(ratio*100).toFixed(0)}% capacity). Gantry crane must operate in cautionary slow-speed mode.`
-          });
-        }
-      }
-
-      densitySlewPenalty += zoneSlewDelay;
-      crossedZonesSummary.push({
-        id: zoneId,
+    if (zoneId.startsWith('Crane-')) {
+      hasCriticalInterlock = true;
+      zoneSlewDelay += 5.0;
+      obstructions.push({
+        zoneId,
         name: zone.label,
-        weight,
-        ratio,
-        delay: zoneSlewDelay
+        type: 'CRITICAL',
+        reason: 'SHARED RAIL OCCUPANCY',
+        desc: `Secondary handling equipment is currently located at ${zone.label}. Please confirm gantry path clearance.`
+      });
+    } else if (ratio >= OVERLOAD_RATIO) {
+      hasCriticalInterlock = true;
+      zoneSlewDelay += 10.0;
+      obstructions.push({
+        zoneId,
+        name: zone.label,
+        type: 'CRITICAL',
+        reason: 'MAX STORAGE CAPACITY EXCEEDED',
+        desc: `Zone ${zone.label} is near maximum storage density (${weight.toLocaleString()} lbs, ${(ratio * 100).toFixed(0)}% capacity). High stacks violate overhead clearance drop guidelines.`
+      });
+    } else if (ratio >= SLOW_MODE_RATIO && !isA934) {
+      zoneSlewDelay += 3.0;
+      obstructions.push({
+        zoneId,
+        name: zone.label,
+        type: 'CONSTRAINT',
+        reason: 'HIGH LOAD DENSITY',
+        desc: `Elevated pile mass density (${weight.toLocaleString()} lbs, ${(ratio * 100).toFixed(0)}% capacity). Gantry crane must operate in cautionary slow-speed mode.`
       });
     }
+
+    densitySlewPenalty += zoneSlewDelay;
+    crossedZonesSummary.push({ id: zoneId, name: zone.label, weight, ratio, delay: zoneSlewDelay });
   });
 
   const runwayFps = 150 / 60; // 2.5 ft/sec

@@ -34,6 +34,7 @@ import {
   zoneQuadrants 
 } from './yardMapData';
 import { getRouteAnalysisByZones } from '../utils/yardMath';
+import { getZoneCapacity, gradeZoneViolation, movementBlockedReason, OVERLOAD_RATIO, slottingConflict, SLOW_MODE_RATIO } from '../yardRules';
 
 export default function YardMapPage() {
   const { currentRole, operators } = useApp();
@@ -72,17 +73,24 @@ export default function YardMapPage() {
   const [isRoutingActive, setIsRoutingActive] = useState<boolean>(false);
   const [routeOrigin, setRouteOrigin] = useState<string | null>(null);
   const [routeDestination, setRouteDestination] = useState<string | null>(null);
-  const [routeMaterialType, setRouteMaterialType] = useState<'ALL' | 'Epoxy' | 'Black'>('ALL');
+  const [routeBundleId, setRouteBundleId] = useState<string>('');
+  const [capacitySaveError, setCapacitySaveError] = useState<string | null>(null);
+  const capacitySaveTimers = React.useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
   const [executionError, setExecutionError] = useState<string | null>(null);
   const [executionSuccess, setExecutionSuccess] = useState<string | null>(null);
 
   const loadYardBundles = async () => {
     try {
-      const [bRes, aRes] = await Promise.all([
+      const [bRes, aRes, cRes] = await Promise.all([
         fetch('/api/bundles').catch(() => null),
-        fetch('/api/activity').catch(() => null)
+        fetch('/api/activity').catch(() => null),
+        fetch('/api/zone-capacities').catch(() => null)
       ]);
+
+      if (cRes && cRes.ok) {
+        setZoneCustomCapacities(await cRes.json());
+      }
 
       let gotBundles = false;
       let gotActivities = false;
@@ -166,6 +174,9 @@ export default function YardMapPage() {
           }
           if (payload.data.activityEvents) {
             setActivities(payload.data.activityEvents);
+          }
+          if (payload.data.zoneCapacities) {
+            setZoneCustomCapacities(payload.data.zoneCapacities);
           }
         }
       } catch (err) {
@@ -258,14 +269,28 @@ export default function YardMapPage() {
   };
 
   const getZoneMaxCapacity = (zoneId: string) => {
-    return zoneCustomCapacities[zoneId] || 25000; // Customizable with beautiful default capacity (25k LBS)
+    return getZoneCapacity(zoneId, zoneCustomCapacities); // Same limit the gantry interlocks use
   };
 
   const maxZoneWeight = Math.max(...zonesList.map(z => getZoneWeight(z.id)), 10000);
   
   // Real-time Gantry Route Path & Obstruction Computation
+  // Bundle the gantry will carry: the one picked, or the first bundle resting at the origin
+  const originBundles = routeOrigin ? bundles.filter(b => b.location === routeOrigin) : [];
+  const routeBundle = originBundles.find(b => b.id === routeBundleId) || originBundles[0];
+  // Placement rules the server checks on execute, shown before the operator presses the button
+  const routeRuleIssues: string[] = [];
+  if (routeBundle && routeDestination) {
+    const blocked = movementBlockedReason(routeBundle);
+    if (blocked) routeRuleIssues.push(blocked);
+    if (routeDestination.startsWith('Crane-')) routeRuleIssues.push('A gantry position is not a place to set a bundle down.');
+    const zoneError = gradeZoneViolation(routeBundle.grade, routeDestination);
+    if (zoneError) routeRuleIssues.push(zoneError);
+    const conflict = slottingConflict(routeBundle, routeDestination, bundles);
+    if (conflict) routeRuleIssues.push(`Bundle ${conflict.tagId} at ${routeDestination} ships sooner (${new Date(conflict.shippingDate).toLocaleDateString()}) and would be buried.`);
+  }
   const routeAnalysis = routeOrigin && routeDestination 
-    ? getRouteAnalysisByZones(routeOrigin, routeDestination, routeMaterialType, bundles, zoneCustomCapacities)
+    ? getRouteAnalysisByZones(routeOrigin, routeDestination, bundles, zoneCustomCapacities, routeBundle?.id)
     : { 
         pathD: '', 
         dX: 0, 
@@ -281,6 +306,7 @@ export default function YardMapPage() {
         rampTime: 0,
         hasCriticalInterlock: false
       };
+  const routeBlocked = routeAnalysis.obstructions.some(obs => obs.type === 'CRITICAL') || routeRuleIssues.length > 0;
 
   const getZonesForCategory = (categoryId: string) => {
     switch (categoryId) {
@@ -318,13 +344,13 @@ export default function YardMapPage() {
         return ratio <= 0.25;
       }
       if (categoryId === 'medium-load') {
-        return ratio > 0.25 && ratio <= 0.55;
+        return ratio > 0.25 && ratio < SLOW_MODE_RATIO;
       }
       if (categoryId === 'high-load') {
-        return ratio > 0.55 && ratio <= 0.85;
+        return ratio >= SLOW_MODE_RATIO && ratio < OVERLOAD_RATIO;
       }
       if (categoryId === 'extreme-load') {
-        return ratio > 0.85;
+        return ratio >= OVERLOAD_RATIO;
       }
       return false;
     });
@@ -370,7 +396,7 @@ export default function YardMapPage() {
   Object.keys(zoneCoords).forEach((zId) => {
     const quad = zoneQuadrants[zId];
     if (quad) {
-      quadrantInfoMap[quad].capacity += zoneCustomCapacities[zId] || 75000;
+      quadrantInfoMap[quad].capacity += getZoneCapacity(zId, zoneCustomCapacities);
     }
   });
 
@@ -412,7 +438,7 @@ export default function YardMapPage() {
       key: 'SW',
       name: 'Southwest Sector',
       activity: 'Black Rebar (Restricted)',
-      color: 'from-amber-600 via-orange-500 to-red-550',
+      color: 'from-amber-600 via-orange-500 to-red-500',
       borderColor: 'border-orange-500/20',
       textColor: 'text-amber-400',
       strokeColor: '#f59e0b',
@@ -424,7 +450,7 @@ export default function YardMapPage() {
       key: 'SE',
       name: 'Southeast Sector',
       activity: 'CNC & Bending',
-      color: 'from-purple-600 via-fuchsia-500 to-pink-550',
+      color: 'from-purple-600 via-fuchsia-500 to-pink-500',
       borderColor: 'border-purple-500/20',
       textColor: 'text-purple-400',
       strokeColor: '#a855f7',
@@ -469,7 +495,7 @@ export default function YardMapPage() {
               }}
               onFocus={() => setShowDropdown(true)}
               placeholder="Search Tag, Mark, Job..."
-              className="w-full bg-slate-950 border border-slate-800 hover:border-slate-700 focus:border-amber-500 focus:outline-hidden text-slate-200 font-mono text-xs pl-9 pr-8 py-2 rounded-lg transition-colors placeholder-slate-650 focus:ring-1 focus:ring-amber-500/20"
+              className="w-full bg-slate-950 border border-slate-800 hover:border-slate-700 focus:border-amber-500 focus:outline-hidden text-slate-200 font-mono text-xs pl-9 pr-8 py-2 rounded-lg transition-colors placeholder-slate-600 focus:ring-1 focus:ring-amber-500/20"
             />
             {headerSearchVal && (
               <button 
@@ -492,7 +518,7 @@ export default function YardMapPage() {
               <div className="absolute right-0 top-full mt-2 w-[280px] bg-slate-950 border border-slate-800 rounded-xl shadow-2xl divide-y divide-slate-900 max-h-[300px] overflow-y-auto">
                 {matchingBundles.length > 0 && (
                   <div className="py-2 px-3">
-                    <span className="text-[8px] font-mono text-slate-550 uppercase tracking-widest font-black block mb-1.5 header-dropdown-title">Matching Bundles</span>
+                    <span className="text-[8px] font-mono text-slate-500 uppercase tracking-widest font-black block mb-1.5 header-dropdown-title">Matching Bundles</span>
                     <div className="space-y-1">
                       {matchingBundles.map(b => (
                         <button
@@ -512,7 +538,7 @@ export default function YardMapPage() {
                           </div>
                           <div className="text-right">
                             <span className="px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 font-bold border border-amber-500/20 text-[8px] uppercase">{b.location}</span>
-                            <span className="block text-[8px] text-slate-405 mt-0.5">{b.status}</span>
+                            <span className="block text-[8px] text-slate-400 mt-0.5">{b.status}</span>
                           </div>
                         </button>
                       ))}
@@ -522,7 +548,7 @@ export default function YardMapPage() {
 
                 {matchingJobs.length > 0 && (
                   <div className="py-2 px-3">
-                    <span className="text-[8px] font-mono text-slate-550 uppercase tracking-widest font-black block mb-1.5 header-dropdown-title">Matching Jobs</span>
+                    <span className="text-[8px] font-mono text-slate-500 uppercase tracking-widest font-black block mb-1.5 header-dropdown-title">Matching Jobs</span>
                     <div className="space-y-1">
                       {matchingJobs.map(jobId => {
                         const jobBundles = bundles.filter(b => b.jobId === jobId);
@@ -582,7 +608,7 @@ export default function YardMapPage() {
             </div>
 
             {/* Live Contextual Detail Panel */}
-            <div className="mb-4 bg-slate-950/70 border border-slate-850/80 rounded-xl p-3.5 transition-all text-xs" id="blueprint-live-hover-panel">
+            <div className="mb-4 bg-slate-950/70 border border-slate-800/80 rounded-xl p-3.5 transition-all text-xs" id="blueprint-live-hover-panel">
               {activeFocusZoneData ? (
                 <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
                   <div className="space-y-1">
@@ -604,7 +630,7 @@ export default function YardMapPage() {
                       )}
                     </div>
                     <p className="text-slate-400 text-xxs font-sans leading-relaxed">
-                      Residing Stock: <span className="text-amber-450 font-mono font-bold">{activeFocusZoneBundles.length}</span> bundle(s) detected at this sector coordinate.
+                      Residing Stock: <span className="text-amber-400 font-mono font-bold">{activeFocusZoneBundles.length}</span> bundle(s) detected at this sector coordinate.
                     </p>
                   </div>
 
@@ -616,9 +642,9 @@ export default function YardMapPage() {
                           className="bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 px-2.2 py-1 rounded-md text-[10px] font-mono flex items-center gap-1.5 transition-colors"
                           title={`${b.mark} | ${b.weight} lbs | Status: ${b.status}`}
                         >
-                          <span className="text-slate-350 font-bold">{b.tagId}</span>
+                          <span className="text-slate-300 font-bold">{b.tagId}</span>
                           <span className={`text-[8px] px-1 rounded uppercase tracking-wider font-bold ${
-                            b.grade === 'Epoxy' ? 'bg-teal-500/10 text-teal-400 border border-teal-555/15' : 'bg-slate-950 text-slate-500 border border-slate-900'
+                            b.grade === 'Epoxy' ? 'bg-teal-500/10 text-teal-400 border border-teal-500/15' : 'bg-slate-950 text-slate-500 border border-slate-900'
                           }`}>
                             {b.grade}
                           </span>
@@ -626,7 +652,7 @@ export default function YardMapPage() {
                       ))}
                     </div>
                   ) : (
-                    <span className="text-[9px] font-mono text-slate-550 italic uppercase tracking-widest self-start md:self-center">
+                    <span className="text-[9px] font-mono text-slate-500 italic uppercase tracking-widest self-start md:self-center">
                       No Active Bundle Inventory In Coords
                     </span>
                   )}
@@ -645,7 +671,7 @@ export default function YardMapPage() {
             </div>
 
             {/* S4. Interactive SVG Blueprint Layout representing Saint Paul Plant Floor */}
-            <div className="relative overflow-x-auto overflow-y-hidden border border-slate-850/60 bg-slate-950/40 rounded-2xl p-3 md:p-4 mb-4" id="saint-paul-floorplan-blueprint-container">
+            <div className="relative overflow-x-auto overflow-y-hidden border border-slate-800/60 bg-slate-950/40 rounded-2xl p-3 md:p-4 mb-4" id="saint-paul-floorplan-blueprint-container">
               
               {/* Responsive Aspect Ratio Wrapper with Horizontal Scroll on Small Screen */}
               <div className="min-w-[850px] w-full" id="blueprint-svg-scroller">
@@ -824,13 +850,13 @@ export default function YardMapPage() {
                           stroke = '#eab308';
                           strokeWidth = '1.2';
                           beaconColor = '#eab308';
-                        } else if (ratio <= 0.55) {
+                        } else if (ratio < SLOW_MODE_RATIO) {
                           // Medium load: Bright Orange
                           fill = 'rgba(249, 115, 22, 0.20)';
                           stroke = '#f97316';
                           strokeWidth = '1.5';
                           beaconColor = '#f97316';
-                        } else if (ratio <= 0.85) {
+                        } else if (ratio < OVERLOAD_RATIO) {
                           // High load: Red-Orange
                           fill = 'rgba(239, 68, 68, 0.26)';
                           stroke = '#ef4444';
@@ -1140,7 +1166,7 @@ export default function YardMapPage() {
                   <h3 className="text-xs font-mono font-bold text-white uppercase tracking-wider">
                     QUADRANT LOAD BURDEN DISTRIBUTION
                   </h3>
-                  <p className="text-[10px] text-slate-450 leading-relaxed max-w-xl">
+                  <p className="text-[10px] text-slate-400 leading-relaxed max-w-xl">
                     Aggregates rebar load weights (LBS) across Northwest, Northeast, Southwest, and Southeast plant-yard sectors in real-time.
                   </p>
                 </div>
@@ -1367,7 +1393,7 @@ export default function YardMapPage() {
                           <div className="text-right">
                             <span className="text-[8px] text-slate-500 uppercase leading-none block font-bold mb-0.5 font-bold">UTILITY RATIO</span>
                             <span className={`text-xxs font-black block ${
-                              isHighBurden ? 'text-rose-400 animate-pulse' : 'text-slate-350'
+                              isHighBurden ? 'text-rose-400 animate-pulse' : 'text-slate-300'
                             }`}>
                               {usagePercent.toFixed(1)}% <span className="text-[7px] font-normal text-slate-500">CAP</span>
                             </span>
@@ -1379,7 +1405,7 @@ export default function YardMapPage() {
                           <div 
                             className={`h-full rounded-full transition-all duration-500 ${
                               isHighBurden 
-                                ? 'bg-gradient-to-r from-red-650 to-rose-455 animate-pulse' 
+                                ? 'bg-gradient-to-r from-red-600 to-rose-400 animate-pulse' 
                                 : `bg-gradient-to-r ${q.color}`
                             }`}
                             style={{ width: `${usagePercent}%` }}
@@ -1387,11 +1413,11 @@ export default function YardMapPage() {
                         </div>
 
                         {/* Footer Section / Zones and Package Count indicators */}
-                        <div className="border-t border-slate-900/65 pt-2 flex items-center justify-between text-[8px] text-slate-450 gap-1.5 overflow-hidden">
+                        <div className="border-t border-slate-900/65 pt-2 flex items-center justify-between text-[8px] text-slate-400 gap-1.5 overflow-hidden">
                           <div className="truncate shrink">
                             Zones: <span className="text-slate-300 font-normal">{belongsZones.slice(0, 3).join(', ')}{belongsZones.length > 3 ? '...' : ''}</span>
                           </div>
-                          <div className="text-right font-black shrink-0 uppercase text-slate-350">
+                          <div className="text-right font-black shrink-0 uppercase text-slate-300">
                             {stats.pkgs} {stats.pkgs === 1 ? 'PKG' : 'PKGS'}
                           </div>
                         </div>
@@ -1403,7 +1429,7 @@ export default function YardMapPage() {
             </div>
 
             {/* Gantry Path-Drawing & travel Route Planner Panel */}
-            <div className="bg-slate-900/60 p-5 border border-slate-805 rounded-2xl mb-6 shadow-2xl" id="gantry-route-planner-panel">
+            <div className="bg-slate-900/60 p-5 border border-slate-800 rounded-2xl mb-6 shadow-2xl" id="gantry-route-planner-panel">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-indigo-950 pb-3.5 mb-4.5 gap-3">
                 <div className="space-y-1">
                   <span className="text-[9px] uppercase font-mono tracking-widest text-indigo-400 font-extrabold flex items-center gap-1.5">
@@ -1413,7 +1439,7 @@ export default function YardMapPage() {
                   <h3 className="text-xs font-mono font-bold text-white uppercase tracking-wider">
                     Gantry Travel Route Selector & Collision Guard
                   </h3>
-                  <p className="text-[10px] text-slate-450 leading-relaxed max-w-xl">
+                  <p className="text-[10px] text-slate-400 leading-relaxed max-w-xl">
                     Statically evaluates runway longitudinal tracks & lateral trolley bridge travel sequences, identifying physical corridor conflicts and Cleanroom compliance errors.
                   </p>
                 </div>
@@ -1432,7 +1458,7 @@ export default function YardMapPage() {
                     className={`px-3 py-2 text-[10px] font-mono font-black uppercase tracking-wider rounded-lg border transition-all cursor-pointer shadow-md ${
                       isRoutingActive
                         ? 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 border-emerald-600 animate-pulse'
-                        : 'bg-slate-950 text-slate-350 border-slate-800 hover:border-slate-700 hover:text-white'
+                        : 'bg-slate-950 text-slate-300 border-slate-800 hover:border-slate-700 hover:text-white'
                     }`}
                   >
                     {isRoutingActive ? '🛑 Active Map Selector' : '🎯 Activate Map Selector'}
@@ -1450,7 +1476,7 @@ export default function YardMapPage() {
                   <select
                     value={routeOrigin || ''}
                     onChange={(e) => setRouteOrigin(e.target.value || null)}
-                    className="w-full bg-slate-950 border border-slate-850 p-2.5 rounded-lg text-xxs font-mono text-slate-300 focus:border-amber-500 focus:outline-hidden cursor-pointer h-10 align-middle"
+                    className="w-full bg-slate-950 border border-slate-800 p-2.5 rounded-lg text-xxs font-mono text-slate-300 focus:border-amber-500 focus:outline-hidden cursor-pointer h-10 align-middle"
                   >
                     <option value="">-- Choose Start Zone --</option>
                     {Object.keys(zoneCoords).sort().map(zid => (
@@ -1466,7 +1492,7 @@ export default function YardMapPage() {
                   <select
                     value={routeDestination || ''}
                     onChange={(e) => setRouteDestination(e.target.value || null)}
-                    className="w-full bg-slate-950 border border-slate-855 p-2.5 rounded-lg text-xxs font-mono text-slate-300 focus:border-amber-500 focus:outline-hidden cursor-pointer h-10 align-middle"
+                    className="w-full bg-slate-950 border border-slate-800 p-2.5 rounded-lg text-xxs font-mono text-slate-300 focus:border-amber-500 focus:outline-hidden cursor-pointer h-10 align-middle"
                   >
                     <option value="">-- Choose Destination --</option>
                     {Object.keys(zoneCoords).sort().map(zid => (
@@ -1478,15 +1504,21 @@ export default function YardMapPage() {
                 </div>
 
                 <div>
-                  <label className="text-[9px] font-mono uppercase tracking-widest text-slate-400 block mb-1.5 font-extrabold">Simulated Cargo Material Class</label>
+                  <label htmlFor="route-bundle-select" className="text-[9px] font-mono uppercase tracking-widest text-slate-400 block mb-1.5 font-extrabold">Bundle To Carry</label>
                   <select
-                    value={routeMaterialType}
-                    onChange={(e) => setRouteMaterialType(e.target.value as any)}
-                    className="w-full bg-slate-950 border border-slate-855 p-2.5 rounded-lg text-xxs font-mono text-slate-300 focus:border-amber-500 focus:outline-hidden cursor-pointer h-10 align-middle"
+                    id="route-bundle-select"
+                    value={routeBundle?.id || ''}
+                    onChange={(e) => setRouteBundleId(e.target.value)}
+                    disabled={originBundles.length === 0}
+                    className="w-full bg-slate-950 border border-slate-800 p-2.5 rounded-lg text-xxs font-mono text-slate-300 focus:border-amber-500 focus:outline-hidden cursor-pointer h-10 align-middle disabled:cursor-not-allowed disabled:text-slate-500"
                   >
-                    <option value="ALL">All Rebar Grades (Unchecked Filter)</option>
-                    <option value="Epoxy">Epoxy Coated Simcote Grade</option>
-                    <option value="Black">Carbon steel Black Rebar Grade</option>
+                    {originBundles.length === 0 ? (
+                      <option value="">{routeOrigin ? 'Empty trolley (no bundle at origin)' : '-- Choose a start zone first --'}</option>
+                    ) : originBundles.map(b => (
+                      <option key={`route-bundle-${b.id}`} value={b.id}>
+                        {b.tagId} · {b.grade} {b.barSize} · {b.specification.replace('ASTM_', 'ASTM ')}
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>
@@ -1502,7 +1534,7 @@ export default function YardMapPage() {
                 const cycleTime = (routeAnalysis.dX / runwayFps) + (routeAnalysis.dY / bridgeFps);
 
                 return (
-                  <div className="space-y-4 animate-in fade-in zoom-in duration-300">
+                  <div className="space-y-4 animate-fadeIn">
                     <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 bg-slate-950 p-4 border border-indigo-950/40 rounded-xl font-mono text-center">
                       <div className="space-y-0.5 border-r border-slate-900">
                         <span className="text-[8px] uppercase text-slate-500 block font-bold leading-none">Runway Travel (Horiz)</span>
@@ -1523,14 +1555,14 @@ export default function YardMapPage() {
                         <span className="text-slate-400 text-xs font-black block mt-1">
                           {totalSpan.toFixed(0)} <span className="text-[8px] font-normal text-indigo-400">FT</span>
                         </span>
-                        <span className="text-[7.5px] text-slate-650 block leading-none">Coordinate Distance Sum</span>
+                        <span className="text-[7.5px] text-slate-600 block leading-none">Coordinate Distance Sum</span>
                       </div>
                       <div className="space-y-0.5 border-r border-slate-900">
                         <span className="text-[8px] uppercase text-slate-500 block font-bold leading-none">Ideal Time</span>
                         <span className="text-teal-400 text-xs font-black block mt-1">
                           {routeAnalysis.idealTime.toFixed(1)} <span className="text-[8px] font-normal text-slate-500">SEC</span>
                         </span>
-                        <span className="text-[7.5px] text-slate-650 block leading-none">Zero-Density Airways</span>
+                        <span className="text-[7.5px] text-slate-600 block leading-none">Zero-Density Airways</span>
                       </div>
                       <div className="space-y-0.5">
                         <span className="text-[8px] uppercase text-amber-500 block font-black leading-none">Predictive Slew Time</span>
@@ -1549,7 +1581,7 @@ export default function YardMapPage() {
                           ROUTE TRANSIT TIME ESTIMATES
                         </span>
                         <span className="text-[8px] text-slate-500 uppercase">
-                          Average Gantry Speed: <span className="text-slate-350">120 FPM Typical</span>
+                          Gantry Speeds: <span className="text-slate-300">Runway 150 FPM · Bridge 90 FPM</span>
                         </span>
                       </div>
 
@@ -1564,13 +1596,13 @@ export default function YardMapPage() {
                             {/* ideal index */}
                             <div className="flex justify-between items-center bg-slate-900/40 px-2.5 py-1.5 rounded border border-slate-900/60">
                               <span className="text-slate-400">Mechanical Limit traverse:</span>
-                              <span className="text-slate-250">{routeAnalysis.idealTime.toFixed(1)}s</span>
+                              <span className="text-slate-200">{routeAnalysis.idealTime.toFixed(1)}s</span>
                             </div>
 
                             {/* acceleration profiles */}
                             <div className="flex justify-between items-center bg-slate-900/40 px-2.5 py-1.5 rounded border border-slate-900/60">
                               <span className="text-slate-400">Ramps / Start-Stop Buffers:</span>
-                              <span className="text-slate-250">+{routeAnalysis.rampTime.toFixed(1)}s</span>
+                              <span className="text-slate-200">+{routeAnalysis.rampTime.toFixed(1)}s</span>
                             </div>
 
                             {/* load density pile burden */}
@@ -1606,26 +1638,26 @@ export default function YardMapPage() {
                             ) : (
                               <div className="space-y-2 max-h-[145px] overflow-y-auto pr-1">
                                 {routeAnalysis.crossedZonesSummary.map((zone) => (
-                                  <div key={`crossed-${zone.id}`} className="bg-slate-900/40 border border-slate-905 p-2 rounded-lg text-xxs">
+                                  <div key={`crossed-${zone.id}`} className="bg-slate-900/40 border border-slate-900 p-2 rounded-lg text-xxs">
                                     <div className="flex justify-between items-center mb-1">
                                       <div className="flex items-center gap-1.5">
                                         <span className="font-extrabold text-slate-300">{zone.name}</span>
                                         <span className="text-[8px] text-slate-500">({zone.id})</span>
                                       </div>
                                       <span className={`text-[9.5px] font-black ${
-                                        zone.ratio >= 0.7 ? 'text-rose-400' : zone.ratio >= 0.4 ? 'text-amber-400' : 'text-teal-400'
+                                        zone.ratio >= OVERLOAD_RATIO ? 'text-rose-400' : zone.ratio >= SLOW_MODE_RATIO ? 'text-amber-400' : 'text-teal-400'
                                       }`}>
                                         +{(zone.delay).toFixed(1)}s Delay
                                       </span>
                                     </div>
 
-                                    <div className="grid grid-cols-2 gap-4 text-[8px] text-slate-450">
+                                    <div className="grid grid-cols-2 gap-4 text-[8px] text-slate-400">
                                       <div>
                                         Weight: <span className="text-slate-300 font-bold font-mono">{zone.weight.toLocaleString()} LBS</span>
                                       </div>
                                       <div className="text-right">
                                         Density: <span className={`font-bold font-mono ${
-                                          zone.ratio >= 0.7 ? 'text-rose-400' : zone.ratio >= 0.4 ? 'text-amber-400' : 'text-teal-400'
+                                          zone.ratio >= OVERLOAD_RATIO ? 'text-rose-400' : zone.ratio >= SLOW_MODE_RATIO ? 'text-amber-400' : 'text-teal-400'
                                         }`}>{(zone.ratio * 100).toFixed(0)}% Cap</span>
                                       </div>
                                     </div>
@@ -1633,7 +1665,7 @@ export default function YardMapPage() {
                                     <div className="w-full bg-slate-950 h-1 rounded-full overflow-hidden mt-1.5">
                                       <div 
                                         className={`h-full rounded-full ${
-                                          zone.ratio >= 0.7 ? 'bg-rose-500' : zone.ratio >= 0.4 ? 'bg-amber-500' : 'bg-teal-500'
+                                          zone.ratio >= OVERLOAD_RATIO ? 'bg-rose-500' : zone.ratio >= SLOW_MODE_RATIO ? 'bg-amber-500' : 'bg-teal-500'
                                         }`}
                                         style={{ width: `${Math.min(100, zone.ratio * 100)}%` }}
                                       />
@@ -1650,7 +1682,7 @@ export default function YardMapPage() {
                     {/* Proximity Obstruction List */}
                     <div className="border border-slate-900 bg-slate-950/40 rounded-xl p-4">
                       <div className="flex items-center justify-between border-b border-slate-900 pb-2 mb-3.5">
-                        <span className="text-[10px] font-mono text-slate-350 uppercase tracking-widest font-extrabold flex items-center gap-1.5">
+                        <span className="text-[10px] font-mono text-slate-300 uppercase tracking-widest font-extrabold flex items-center gap-1.5">
                           <HardHat className="h-4 w-4 text-amber-500" />
                           Live Corridor Obstruction guard System
                         </span>
@@ -1687,12 +1719,12 @@ export default function YardMapPage() {
                                   }`}>
                                     {obs.type}
                                   </span>
-                                  <span className={`px-1.5 py-0.5 rounded text-[8px] text-white font-extrabold uppercase bg-slate-900 border border-slate-805`}>
+                                  <span className={`px-1.5 py-0.5 rounded text-[8px] text-white font-extrabold uppercase bg-slate-900 border border-slate-800`}>
                                     {obs.name}
                                   </span>
                                   <span className="font-extrabold">{obs.reason}</span>
                                 </div>
-                                <p className="text-[10px] text-slate-350 leading-relaxed font-sans">{obs.desc}</p>
+                                <p className="text-[10px] text-slate-300 leading-relaxed font-sans">{obs.desc}</p>
                               </div>
                               <button
                                 type="button"
@@ -1706,6 +1738,15 @@ export default function YardMapPage() {
                         </div>
                       )}
 
+                      {routeRuleIssues.length > 0 && (
+                        <div className="mt-4 p-3 border border-rose-500/20 bg-rose-500/5 rounded-lg space-y-1.5" role="alert">
+                          <span className="text-[9px] font-mono font-extrabold uppercase tracking-wide text-rose-400 block">Placement rules the server will enforce</span>
+                          {routeRuleIssues.map(issue => (
+                            <p key={issue} className="text-xxs font-mono text-rose-300 leading-relaxed">{issue}</p>
+                          ))}
+                        </div>
+                      )}
+
                       {/* Execute Gantry Move Interlock Controls */}
                       <div className="mt-4 pt-3.5 border-t border-slate-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3 font-mono">
                         <div className="space-y-1">
@@ -1713,21 +1754,21 @@ export default function YardMapPage() {
                             Security Interlock Status:
                           </span>
                           <span className={`text-[10px] font-extrabold flex items-center gap-1.5 ${
-                            routeAnalysis.obstructions.some(obs => obs.type === 'CRITICAL')
+                            routeBlocked
                               ? 'text-rose-500' 
                               : 'text-emerald-400 font-black animate-pulse'
                           }`}>
-                            {routeAnalysis.obstructions.some(obs => obs.type === 'CRITICAL') ? (
-                              <>🛑 ENFORCED SHUTDOWN (CRITICAL CONFLICTS)</>
+                            {routeBlocked ? (
+                              <>🛑 ENFORCED SHUTDOWN ({routeAnalysis.obstructions.some(obs => obs.type === 'CRITICAL') ? 'CRITICAL CONFLICTS' : 'PLACEMENT RULES'})</>
                             ) : (
-                              <>✓ TRAFFIC CLEAR - INTERLOCK BYPASS OK</>
+                              <>✓ TRAFFIC CLEAR - ALL INTERLOCKS PASSED</>
                             )}
                           </span>
                         </div>
 
                         <button
                           type="button"
-                          disabled={routeAnalysis.obstructions.some(obs => obs.type === 'CRITICAL')}
+                          disabled={routeBlocked}
                           onClick={async () => {
                             setExecutionError(null);
                             setExecutionSuccess(null);
@@ -1738,7 +1779,7 @@ export default function YardMapPage() {
                                 body: JSON.stringify({
                                   originId: routeOrigin,
                                   destinationId: routeDestination,
-                                  materialClass: routeMaterialType,
+                                  bundleId: routeBundle?.id,
                                   operatorName: currentRole || 'Gantry Operator'
                                 })
                               });
@@ -1756,7 +1797,7 @@ export default function YardMapPage() {
                             }
                           }}
                           className={`px-4 py-2.5 rounded-lg text-xxs font-black uppercase tracking-wider transition-all duration-200 cursor-pointer shadow-md ${
-                            routeAnalysis.obstructions.some(obs => obs.type === 'CRITICAL')
+                            routeBlocked
                               ? 'bg-slate-900 border border-slate-800 text-slate-600 cursor-not-allowed'
                               : 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 hover:shadow-lg hover:shadow-emerald-500/10 active:scale-95'
                           }`}
@@ -1795,7 +1836,7 @@ export default function YardMapPage() {
               })() : (
                 <div className="p-8 text-center text-slate-500 border border-dashed border-slate-900 rounded-xl bg-slate-950/10 font-mono">
                   <HardHat className="h-10 w-10 text-slate-700 mx-auto mb-3.5" />
-                  <span className="text-[10px] uppercase tracking-widest font-black text-slate-450 block mb-1">corridor simulation idle</span>
+                  <span className="text-[10px] uppercase tracking-widest font-black text-slate-400 block mb-1">corridor simulation idle</span>
                   <p className="text-[10px] leading-relaxed max-w-md mx-auto font-sans">
                     Define both origin and destination terminal sectors on the blueprint coordinates above (or select them manually in the controllers) to verify travel tracks and check live OSHA collisions.
                   </p>
@@ -1815,7 +1856,7 @@ export default function YardMapPage() {
                     Active Queue (Bending/Staged)
                   </span>
                   <span className="text-[9px] font-mono text-amber-500/80 uppercase tracking-wider flex items-center gap-1.5">
-                    <span className="h-1.5 w-1.5 rounded-full bg-amber-550 animate-pulse"></span>
+                    <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse"></span>
                     Dashed Amber Section Restricted to Black-Rebar Operations
                   </span>
                 </div>
@@ -1836,10 +1877,10 @@ export default function YardMapPage() {
                 
                 <div className="flex flex-wrap items-center gap-2">
                   {[
-                    { label: 'Staged Epoxy Flow', grade: 'Epoxy', status: 'STAGED', mode: false, color: 'hover:border-teal-500/50 hover:bg-teal-950/20 text-teal-450 border-teal-500/25 bg-teal-500/5' },
-                    { label: 'Raw Carbon Stacks', grade: 'Black', status: 'RAW', mode: false, color: 'hover:border-blue-500/50 hover:bg-blue-950/20 text-blue-405 border-blue-500/20 bg-blue-500/5' },
+                    { label: 'Staged Epoxy Flow', grade: 'Epoxy', status: 'STAGED', mode: false, color: 'hover:border-teal-500/50 hover:bg-teal-950/20 text-teal-400 border-teal-500/25 bg-teal-500/5' },
+                    { label: 'Raw Carbon Stacks', grade: 'Black', status: 'RAW', mode: false, color: 'hover:border-blue-500/50 hover:bg-blue-950/20 text-blue-400 border-blue-500/20 bg-blue-500/5' },
                     { label: 'Robotic Bending', grade: 'ALL', status: 'BENDING', mode: false, color: 'hover:border-purple-500/50 hover:bg-purple-950/20 text-purple-400 border-purple-500/20 bg-purple-500/5' },
-                    { label: 'Staged Cargo Heatmap', grade: 'ALL', status: 'ALL', mode: true, color: 'hover:border-rose-500/50 hover:bg-rose-950/20 text-rose-455 border-rose-500/20 bg-rose-500/5' },
+                    { label: 'Staged Cargo Heatmap', grade: 'ALL', status: 'ALL', mode: true, color: 'hover:border-rose-500/50 hover:bg-rose-950/20 text-rose-400 border-rose-500/20 bg-rose-500/5' },
                     { label: 'Carrier Deliveries', grade: 'ALL', status: 'LOADED', mode: false, color: 'hover:border-emerald-500/50 hover:bg-emerald-950/20 text-emerald-400 border-emerald-500/20 bg-emerald-500/5' }
                   ].map((preset) => {
                     const active = gradeFilter === preset.grade && statusFilter === preset.status && isHeatmapMode === preset.mode;
@@ -1952,7 +1993,7 @@ export default function YardMapPage() {
 
                   {/* Grade Selector */}
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[9px] font-mono text-slate-550 uppercase">Grade:</span>
+                    <span className="text-[9px] font-mono text-slate-500 uppercase">Grade:</span>
                     <select
                       value={gradeFilter}
                       onChange={(e) => setGradeFilter(e.target.value)}
@@ -1966,7 +2007,7 @@ export default function YardMapPage() {
 
                   {/* Status Selector */}
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[9px] font-mono text-slate-550 uppercase">Status:</span>
+                    <span className="text-[9px] font-mono text-slate-500 uppercase">Status:</span>
                     <select
                       value={statusFilter}
                       onChange={(e) => setStatusFilter(e.target.value)}
@@ -2010,7 +2051,7 @@ export default function YardMapPage() {
 
         {/* Dynamic Zone Details sidebar drawer */}
         <div className="space-y-4" id="zone-telemetry-drawer border-l border-slate-900">
-          <div className="bg-slate-900/45 border border-slate-805 rounded-2xl p-5 min-h-[460px] flex flex-col justify-between">
+          <div className="bg-slate-900/45 border border-slate-800 rounded-2xl p-5 min-h-[460px] flex flex-col justify-between">
             <div>
               <div className="flex items-center gap-1.5 border-b border-slate-900 pb-3 mb-4">
                 <Info className="h-4 w-4 text-slate-400" />
@@ -2054,7 +2095,7 @@ export default function YardMapPage() {
               ) : (
                 <div className="text-center py-20">
                   <HelpCircle className="h-8 w-8 text-slate-700 mx-auto stroke-[1.5]" />
-                  <p className="text-[10px] font-mono text-slate-550 mt-3 max-w-[180px] mx-auto leading-relaxed uppercase">
+                  <p className="text-[10px] font-mono text-slate-500 mt-3 max-w-[180px] mx-auto leading-relaxed uppercase">
                     Click any coordinate cell on the plant floor Map to monitor zone inventories.
                   </p>
                 </div>
@@ -2131,7 +2172,7 @@ export default function YardMapPage() {
                     >
                       <span>📦 Active Bundle Inventory</span>
                       <span className={`px-1.5 py-0.2 rounded text-[9px] ${
-                        modalActiveTab === 'inventory' ? 'bg-amber-500/20 text-amber-350 font-black' : 'bg-slate-950 text-slate-500 font-bold'
+                        modalActiveTab === 'inventory' ? 'bg-amber-500/20 text-amber-300 font-black' : 'bg-slate-950 text-slate-500 font-bold'
                       }`}>{modalZoneBundles.length}</span>
                     </button>
 
@@ -2145,7 +2186,7 @@ export default function YardMapPage() {
                     >
                       <span>📜 Recent Activity Logs</span>
                       <span className={`px-1.5 py-0.2 rounded text-[9px] ${
-                        modalActiveTab === 'activities' ? 'bg-amber-500/20 text-amber-350 font-black' : 'bg-slate-950 text-slate-500 font-bold'
+                        modalActiveTab === 'activities' ? 'bg-amber-500/20 text-amber-300 font-black' : 'bg-slate-950 text-slate-500 font-bold'
                       }`}>{zoneEvents.length}</span>
                     </button>
 
@@ -2215,7 +2256,7 @@ export default function YardMapPage() {
                       <div>
                         <h3 className="text-sm font-sans font-black text-white uppercase tracking-tight flex items-center gap-1.5">
                           <span>Active Residing Package Inventory</span>
-                          <span className="text-xxs font-mono bg-slate-900 border border-slate-800 text-slate-405 px-2 py-0.5 rounded-md font-bold text-[10px]">
+                          <span className="text-xxs font-mono bg-slate-900 border border-slate-800 text-slate-400 px-2 py-0.5 rounded-md font-bold text-[10px]">
                             {modalZoneBundles.length} detected
                           </span>
                         </h3>
@@ -2228,7 +2269,7 @@ export default function YardMapPage() {
                       {modalZoneBundles.length === 0 ? (
                         <div className="h-full flex flex-col items-center justify-center py-16 text-center border border-dashed border-slate-900 rounded-2xl bg-slate-950/30">
                           <HelpCircle className="h-10 w-10 text-slate-700 mb-3" />
-                          <span className="text-xxs uppercase tracking-wider text-slate-550 block mb-1">VACANT SECTOR PLAN</span>
+                          <span className="text-xxs uppercase tracking-wider text-slate-500 block mb-1">VACANT SECTOR PLAN</span>
                           <p className="text-[10px] text-slate-500 max-w-sm font-sans leading-relaxed">There are currently no package coordinates registered here. You can transition bundles here by staging, or carrying them via Gantry cranes.</p>
                         </div>
                       ) : (
@@ -2262,14 +2303,14 @@ export default function YardMapPage() {
                                         </span>
                                       </div>
                                     </td>
-                                    <td className="px-4 text-slate-350">{b.mark}</td>
+                                    <td className="px-4 text-slate-300">{b.mark}</td>
                                     <td className="px-4 text-indigo-400">{b.barSize || '#6'} @ {b.length || 40}ft</td>
                                     <td className="px-4 font-bold text-amber-500">{b.weight?.toLocaleString()}</td>
                                     <td className="px-4">
                                       <span className={`inline-block px-2 py-0.5 rounded text-[8px] font-black uppercase border tracking-wider ${
                                         b.grade === 'Epoxy' 
                                           ? 'bg-teal-500/10 text-teal-400 border-teal-500/20' 
-                                          : 'bg-slate-950 text-slate-450 border-slate-900'
+                                          : 'bg-slate-950 text-slate-400 border-slate-900'
                                       }`}>
                                         {b.grade}
                                       </span>
@@ -2310,7 +2351,7 @@ export default function YardMapPage() {
                                         {b.status !== 'BENDING' && modalZone.type !== 'bender' && (
                                           <button 
                                             onClick={() => handleActionOnBundle(b.id, 'send-to-bender', 'Bender-New-Robo')}
-                                            className="bg-slate-900 border border-slate-800 text-[8px] px-2 py-1 rounded text-orange-450 font-bold hover:border-orange-500 transition-all cursor-pointer"
+                                            className="bg-slate-900 border border-slate-800 text-[8px] px-2 py-1 rounded text-orange-400 font-bold hover:border-orange-500 transition-all cursor-pointer"
                                           >
                                             ⚙️ CNC Bender
                                           </button>
@@ -2319,7 +2360,7 @@ export default function YardMapPage() {
                                         {modalZone.type === 'crane' && (
                                           <button 
                                             onClick={() => handleActionOnBundle(b.id, 'drop', 'Rack J-15')}
-                                            className="bg-slate-900 border border-slate-800 text-[8px] px-2 py-1 rounded text-teal-400 font-bold hover:border-teal-550 transition-all cursor-pointer"
+                                            className="bg-slate-900 border border-slate-800 text-[8px] px-2 py-1 rounded text-teal-400 font-bold hover:border-teal-500 transition-all cursor-pointer"
                                           >
                                             ⚓ Drop to Rack
                                           </button>
@@ -2355,7 +2396,7 @@ export default function YardMapPage() {
                       {zoneEvents.length === 0 ? (
                         <div className="h-full flex flex-col items-center justify-center py-16 text-center border border-dashed border-slate-900 rounded-2xl bg-slate-950/30">
                           <History className="h-10 w-10 text-slate-700 mb-3" />
-                          <span className="text-xxs uppercase tracking-wider text-slate-550 block mb-1">NO RECENT HISTORY RECORDED</span>
+                          <span className="text-xxs uppercase tracking-wider text-slate-500 block mb-1">NO RECENT HISTORY RECORDED</span>
                           <p className="text-[10px] text-slate-500 max-w-sm font-sans leading-relaxed">No bundle relocations, exceptions, or bender processing requests have been registered at this sector during the current Shift.</p>
                         </div>
                       ) : (
@@ -2363,7 +2404,7 @@ export default function YardMapPage() {
                           <div key={ev.id} className="border border-slate-900 bg-slate-900/10 p-3.5 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xxs animate-in fade-in">
                             <div className="space-y-1">
                               <div className="flex items-center gap-2 flex-wrap">
-                                <span className="bg-slate-900 px-1.5 py-0.5 rounded text-[8px] font-black text-slate-450 uppercase border border-slate-805 tracking-widest">{ev.id}</span>
+                                <span className="bg-slate-900 px-1.5 py-0.5 rounded text-[8px] font-black text-slate-400 uppercase border border-slate-800 tracking-widest">{ev.id}</span>
                                 <span className="font-extrabold text-white">{ev.action}</span>
                                 <span className="text-[10px] text-slate-600">•</span>
                                 <span className="text-slate-400 font-bold">Bundle: {ev.tagId}</span>
@@ -2427,15 +2468,15 @@ export default function YardMapPage() {
                       </div>
 
                       {/* CONFIG 2: CAPACITY SLIDER */}
-                      <div className="border border-slate-900 bg-slate-905/10 p-4 rounded-xl space-y-4 flex flex-col justify-between">
+                      <div className="border border-slate-900 bg-slate-900/10 p-4 rounded-xl space-y-4 flex flex-col justify-between">
                         <div className="space-y-4">
                           <div className="space-y-1 border-b border-slate-900 pb-2">
                             <h4 className="text-[11px] uppercase font-black text-white tracking-widest">📊 Safety Weight Buffer Threshold</h4>
-                            <p className="text-[9px] text-slate-500 font-sans">Override default safety ratio. Heatmap color alerts adjust dynamically based on target.</p>
+                            <p className="text-[9px] text-slate-500 font-sans">Override the default 75,000 LBS zone limit. The heatmap and the server-side gantry interlocks both use this value.</p>
                           </div>
                           
                           <div className="space-y-2">
-                            <div className="flex items-center justify-between text-xs font-bold text-slate-350">
+                            <div className="flex items-center justify-between text-xs font-bold text-slate-300">
                               <span>Current Target:</span>
                               <span className="text-amber-400 text-sm font-extrabold">{maxZoneCap.toLocaleString()} LBS</span>
                             </div>
@@ -2447,14 +2488,34 @@ export default function YardMapPage() {
                               value={maxZoneCap}
                               onChange={(e) => {
                                 const val = Number(e.target.value);
+                                const zoneId = doubleClickedZoneId;
                                 setZoneCustomCapacities(prev => ({
                                   ...prev,
-                                  [doubleClickedZoneId]: val
+                                  [zoneId]: val
                                 }));
+                                // Save to the server (debounced) so the gantry interlocks use the same limit
+                                clearTimeout(capacitySaveTimers.current[zoneId]);
+                                capacitySaveTimers.current[zoneId] = setTimeout(async () => {
+                                  try {
+                                    const res = await fetch(`/api/zone-capacities/${encodeURIComponent(zoneId)}`, {
+                                      method: 'PUT',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({ capacity: val })
+                                    });
+                                    if (!res.ok) {
+                                      const err = await res.json().catch(() => ({}));
+                                      setCapacitySaveError(err.error || 'Capacity change was not saved.');
+                                    } else {
+                                      setCapacitySaveError(null);
+                                    }
+                                  } catch {
+                                    setCapacitySaveError('Capacity change was not saved: server unreachable.');
+                                  }
+                                }, 400);
                               }}
                               className="w-full bg-slate-900 accent-amber-500 cursor-pointer h-1.5 rounded-lg"
                             />
-                            <div className="flex justify-between text-[8px] text-slate-550">
+                            <div className="flex justify-between text-[8px] text-slate-500">
                               <span>5,000 LBS</span>
                               <span>75,000 LBS</span>
                               <span>150,000 LBS</span>
@@ -2463,6 +2524,7 @@ export default function YardMapPage() {
                         </div>
 
                         <div className="p-2.5 rounded bg-amber-500/5 border border-amber-500/10 text-[10px] text-amber-500/80 font-sans leading-normal">
+                          {capacitySaveError && <span className="block text-rose-400 font-mono mb-1">{capacitySaveError}</span>}
                           ⚠️ Reducing limit below current residing weight (<span className="font-bold text-amber-400 font-mono">{totalZoneWeight.toLocaleString()} LBS</span>) will immediately trigger RED extreme load floor map status coordinates for this zone.
                         </div>
                       </div>
@@ -2568,14 +2630,14 @@ export default function YardMapPage() {
                               value={exFormDesc}
                               onChange={(e) => setExFormDesc(e.target.value)}
                               placeholder="e.g. Bundle J-12 has shifted on the northwest rack array, sagging past limit."
-                              className="w-full bg-slate-905 border border-slate-800 rounded-lg p-2.5 text-xs text-slate-200 focus:outline-hidden focus:border-amber-500"
+                              className="w-full bg-slate-900 border border-slate-800 rounded-lg p-2.5 text-xs text-slate-200 focus:outline-hidden focus:border-amber-500"
                             />
                           </div>
 
                           <div className="md:col-span-2 text-right">
                             <button 
                               type="submit"
-                              className="bg-amber-500 hover:bg-amber-450 active:scale-98 text-slate-950 font-black px-4 py-2.5 rounded-lg text-xs uppercase tracking-wider transition-all cursor-pointer"
+                              className="bg-amber-500 hover:bg-amber-400 active:scale-98 text-slate-950 font-black px-4 py-2.5 rounded-lg text-xs uppercase tracking-wider transition-all cursor-pointer"
                             >
                               🚨 Dispatch Operations Notice
                             </button>
