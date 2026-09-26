@@ -503,7 +503,7 @@ export default function BundleDetailModal({ bundle, onClose }: BundleDetailModal
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-xs uppercase tracking-widest font-mono text-slate-500">Tag Audit Record</span>
+                <span className="text-xs uppercase tracking-widest font-mono text-muted">Tag Audit Record</span>
                 <span className={`px-2 py-0.5 rounded text-[8px] font-mono font-bold uppercase ${
                   bundle.status === 'LOADED' ? 'bg-green-500/10 text-green-400 border border-green-500/20' :
                   bundle.status === 'BENDING' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20 animate-pulse' :
@@ -514,7 +514,7 @@ export default function BundleDetailModal({ bundle, onClose }: BundleDetailModal
                 </span>
               </div>
               <h2 className="font-sans text-base font-black text-white uppercase tracking-tight antialiased">
-                {bundle.tagId} <span className="text-slate-500">•</span> {bundle.mark}
+                {bundle.tagId} <span className="text-muted">•</span> {bundle.mark}
               </h2>
             </div>
           </div>
@@ -590,7 +590,7 @@ export default function BundleDetailModal({ bundle, onClose }: BundleDetailModal
                 >
                   -
                 </button>
-                <span className="text-[8px] font-mono text-slate-500 font-bold">ZOOM</span>
+                <span className="text-[8px] font-mono text-muted font-bold">ZOOM</span>
                 <button
                   onClick={() => setZoom(z => Math.min(140, z + 8))}
                   className="text-[10px] px-1 hover:text-white text-slate-400 font-bold font-mono cursor-pointer"
@@ -655,7 +655,7 @@ export default function BundleDetailModal({ bundle, onClose }: BundleDetailModal
             })()}
 
             <div className="bg-slate-950 p-4 border border-slate-900 rounded-xl font-mono text-xxs space-y-2">
-              <span className="text-[8px] text-slate-500 uppercase block font-black">LOGISTICS SCHEDULE</span>
+              <span className="text-[8px] text-muted uppercase block font-black">LOGISTICS SCHEDULE</span>
               <div className="flex items-center justify-between">
                 <span className="text-slate-400">Expected Shipping Date:</span>
                 <span className="text-right font-bold text-teal-400">
@@ -666,12 +666,12 @@ export default function BundleDetailModal({ bundle, onClose }: BundleDetailModal
             
             {/* Technical Mill Table */}
             <div className="space-y-2">
-              <span className="text-[10px] font-mono uppercase tracking-widest text-slate-500 font-extrabold flex items-center gap-1.5 leading-none">
+              <span className="text-[10px] font-mono uppercase tracking-widest text-muted font-extrabold flex items-center gap-1.5 leading-none">
                 <Cpu className="h-3 w-3" /> Technical Specs (ASTM Standard)
               </span>
               
               <div className="bg-slate-950 border border-slate-900 rounded-xl divide-y divide-slate-900 overflow-hidden">
-                <div className="p-3 bg-slate-900/20 grid grid-cols-2 text-xxs font-mono text-slate-500 uppercase">
+                <div className="p-3 bg-slate-900/20 grid grid-cols-2 text-xxs font-mono text-muted uppercase">
                   <span>Specification</span>
                   <span className="text-right">Value</span>
                 </div>
@@ -758,7 +758,7 @@ export default function BundleDetailModal({ bundle, onClose }: BundleDetailModal
 
             {/* Mass Balance & Logistics Metrics */}
             <div className="space-y-2">
-              <span className="text-[10px] font-mono uppercase tracking-widest text-slate-500 font-extrabold flex items-center gap-1.5 leading-none">
+              <span className="text-[10px] font-mono uppercase tracking-widest text-muted font-extrabold flex items-center gap-1.5 leading-none">
                 <Scale className="h-3 w-3" /> Mass Quantities & Counts
               </span>
 
@@ -766,9 +766,9 @@ export default function BundleDetailModal({ bundle, onClose }: BundleDetailModal
                 
                 {/* Standard Pack weight */}
                 <div className="bg-slate-950 p-3.5 border border-slate-900 rounded-xl">
-                  <span className="text-[7.5px] font-mono uppercase text-slate-500 font-extrabold block">Standard Pack Mass</span>
+                  <span className="text-[7.5px] font-mono uppercase text-muted font-extrabold block">Standard Pack Mass</span>
                   <span className="text-xs font-bold font-mono text-white block mt-1">
-                    {bundle.weight.toLocaleString()} <span className="text-[9px] text-slate-500 font-normal">lbs</span>
+                    {bundle.weight.toLocaleString()} <span className="text-[9px] text-muted font-normal">lbs</span>
                   </span>
                   <span className="text-[9px] font-mono text-slate-400 block mt-0.5 border-t border-slate-900 pt-1">
                     {weightKg.toLocaleString()} <span className="text-[8px] text-slate-400 uppercase font-bold">kg (Metric)</span>
@@ -777,9 +777,9 @@ export default function BundleDetailModal({ bundle, onClose }: BundleDetailModal
 
                 {/* Length & Steel Count */}
                 <div className="bg-slate-950 p-3.5 border border-slate-900 rounded-xl">
-                  <span className="text-[7.5px] font-mono uppercase text-slate-500 font-extrabold block">Calculated Count</span>
+                  <span className="text-[7.5px] font-mono uppercase text-muted font-extrabold block">Calculated Count</span>
                   <span className="text-xs font-bold font-mono text-white block mt-1">
-                    ~ {calculatedCount} <span className="text-[9px] text-slate-500 font-normal">bars</span>
+                    ~ {calculatedCount} <span className="text-[9px] text-muted font-normal">bars</span>
                   </span>
                   <span className="text-[9px] font-mono text-slate-400 block mt-0.5 border-t border-slate-900 pt-1">
                     Each bar is {bundle.length} <span className="text-[8px] font-bold">ft ({Math.round(bundle.length * 0.3048 * 10) / 10} m)</span>
@@ -791,14 +791,14 @@ export default function BundleDetailModal({ bundle, onClose }: BundleDetailModal
 
             {/* Production Route & Target information */}
             <div className="space-y-2">
-              <span className="text-[10px] font-mono uppercase tracking-widest text-slate-500 font-extrabold flex items-center gap-1.5 leading-none">
+              <span className="text-[10px] font-mono uppercase tracking-widest text-muted font-extrabold flex items-center gap-1.5 leading-none">
                 <MapPin className="h-3 w-3" /> Plant Logistics & Operations
               </span>
 
               <div className="bg-slate-950 border border-slate-900 rounded-xl p-4 font-mono text-xxs space-y-3.5">
                 
                 <div className="space-y-1">
-                  <span className="text-[8px] text-slate-500 uppercase block font-black">Production Route Chain</span>
+                  <span className="text-[8px] text-muted uppercase block font-black">Production Route Chain</span>
                   <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
                     {bundle.route.split(' -> ').map((node, idx, arr) => (
                       <React.Fragment key={idx}>
@@ -809,7 +809,7 @@ export default function BundleDetailModal({ bundle, onClose }: BundleDetailModal
                         }`}>
                           {node}
                         </span>
-                        {idx < arr.length - 1 && <span className="text-slate-600 text-[10px]">→</span>}
+                        {idx < arr.length - 1 && <span className="text-muted text-[10px]">→</span>}
                       </React.Fragment>
                     ))}
                   </div>
@@ -817,11 +817,11 @@ export default function BundleDetailModal({ bundle, onClose }: BundleDetailModal
 
                 <div className="grid grid-cols-2 gap-4 border-t border-slate-900 pt-3">
                   <div>
-                    <span className="text-[8px] text-slate-500 uppercase block">Active Location</span>
+                    <span className="text-[8px] text-muted uppercase block">Active Location</span>
                     <span className="text-xxs font-bold text-white block mt-0.5 uppercase truncate">{bundle.location}</span>
                   </div>
                   <div>
-                    <span className="text-[8px] text-slate-500 uppercase block">Project Ref</span>
+                    <span className="text-[8px] text-muted uppercase block">Project Ref</span>
                     <span className="text-xxs font-bold text-slate-300 block mt-0.5 uppercase truncate">{bundle.jobId}</span>
                   </div>
                 </div>
@@ -829,12 +829,12 @@ export default function BundleDetailModal({ bundle, onClose }: BundleDetailModal
                 {bundle.door && (
                   <div className="grid grid-cols-2 gap-4 border-t border-slate-900 pt-3">
                     <div>
-                      <span className="text-[8px] text-slate-500 uppercase block">Shipping Bay Assignment</span>
+                      <span className="text-[8px] text-muted uppercase block">Shipping Bay Assignment</span>
                       <span className="text-xxs font-bold text-teal-400 block mt-0.5 uppercase">{bundle.door}</span>
                     </div>
                     {bundle.trailerSize && (
                       <div>
-                        <span className="text-[8px] text-slate-500 uppercase block">Trailer Dimension</span>
+                        <span className="text-[8px] text-muted uppercase block">Trailer Dimension</span>
                         <span className="text-xxs font-bold text-amber-500 block mt-0.5 uppercase">{bundle.trailerSize}</span>
                       </div>
                     )}
@@ -849,9 +849,9 @@ export default function BundleDetailModal({ bundle, onClose }: BundleDetailModal
         </div>
 
         {/* Modal Footer Controls */}
-        <div className="p-4 bg-slate-950 border-t border-slate-900 flex justify-between items-center text-xxs font-mono text-slate-600 shrink-0">
+        <div className="p-4 bg-slate-950 border-t border-slate-900 flex justify-between items-center text-xxs font-mono text-muted shrink-0">
           <span>SIMCOTE MANUFACTURING SPATIAL REBAR SIMULATOR CORE</span>
-          <div className="flex items-center gap-1.5 text-slate-500">
+          <div className="flex items-center gap-1.5 text-muted">
             <CheckCircle2 className="h-3 w-3 text-teal-500" /> SYSTEM STATUS NOMINAL
           </div>
         </div>

@@ -67,12 +67,12 @@ export default function NavBar() {
             <span className="font-mono text-xs font-black tracking-widest text-white leading-none flex items-center group-hover:text-amber-400 transition-colors">
               SKY<span className="text-amber-400">HOOK</span>
             </span>
-            <span className="text-[9px] uppercase font-mono tracking-widest text-slate-500 leading-tight">YARD LOGISTICS</span>
+            <span className="text-[9px] uppercase font-mono tracking-widest text-muted leading-tight">YARD LOGISTICS</span>
           </div>
         </Link>
 
         {/* Dynamic Navigation Tabs list */}
-        <div className="hidden lg:flex items-center gap-1.5" role="tablist">
+        <div className="hidden lg:flex items-center gap-1.5" role="navigation" aria-label="Main navigation">
           {visibleItems.map((item) => {
             const isActive = location === item.href;
             const Icon = item.icon;
@@ -80,13 +80,14 @@ export default function NavBar() {
               <Link
                 key={item.href}
                 href={item.href}
+                aria-current={isActive ? 'page' : undefined}
                 className={`flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-mono tracking-wider transition-colors cursor-pointer ${
                   isActive
                     ? 'bg-slate-900 text-amber-400 border border-slate-800'
                     : 'text-slate-400 hover:bg-slate-950 hover:text-slate-200 border border-transparent'
                 }`}
               >
-                <Icon className={`h-4 w-4 ${isActive ? 'text-amber-500' : 'text-slate-500'}`} />
+                <Icon className={`h-4 w-4 ${isActive ? 'text-amber-500' : 'text-muted'}`} />
                 <span>{item.label}</span>
               </Link>
             );

@@ -775,7 +775,7 @@ export default function FloorTriggerPage() {
             <span>EXPORT SUMMARY PDF</span>
           </button>
           <div className="flex items-center gap-2">
-            <span className="text-xxs font-mono text-slate-500">OPERATOR LEVEL:</span>
+            <span className="text-xxs font-mono text-muted">OPERATOR LEVEL:</span>
             <span className="font-mono text-xs text-amber-500 font-bold bg-amber-500/10 px-2.5 py-1 rounded border border-amber-500/20">
               {currentOperator?.name || currentRole}
             </span>
@@ -790,7 +790,7 @@ export default function FloorTriggerPage() {
           <div className="flex-1">
             <span className="font-bold">FLOOR CONTROL ALARM:</span> {errorBanner}
           </div>
-          <button onClick={clearNotifications} className="text-slate-500 hover:text-white cursor-pointer select-none">✕</button>
+          <button onClick={clearNotifications} className="text-muted hover:text-white cursor-pointer select-none">✕</button>
         </div>
       )}
 
@@ -800,7 +800,7 @@ export default function FloorTriggerPage() {
           <div className="flex-1">
             <span className="font-bold">LINE REPORT:</span> {successBanner}
           </div>
-          <button onClick={clearNotifications} className="text-slate-500 hover:text-white cursor-pointer select-none">✕</button>
+          <button onClick={clearNotifications} className="text-muted hover:text-white cursor-pointer select-none">✕</button>
         </div>
       )}
 
@@ -859,7 +859,7 @@ export default function FloorTriggerPage() {
 
         {/* Suggestion Groups Grid */}
         {Object.keys(groupedSuggestions).length === 0 || activeTabQueue.length === 0 ? (
-          <div className="text-center py-6 text-slate-500 font-mono text-xxs border border-dashed border-slate-800 rounded-xl bg-slate-950/10">
+          <div className="text-center py-6 text-muted font-mono text-xxs border border-dashed border-slate-800 rounded-xl bg-slate-950/10">
             No active bundles in the {activeDept === 'coating' ? 'Coating' : activeDept === 'shearing' ? 'Shearing' : 'Bending'} queue to optimize.
           </div>
         ) : (
@@ -901,7 +901,7 @@ export default function FloorTriggerPage() {
                     </div>
 
                     <div className="mt-3 pt-2.5 border-t border-slate-800/50 flex items-center justify-between">
-                      <span className="text-[9px] font-mono text-slate-500">Weight Load:</span>
+                      <span className="text-[9px] font-mono text-muted">Weight Load:</span>
                       <span className="text-xxs font-mono font-medium text-slate-300">
                         {totalWeight.toLocaleString()} lbs
                       </span>
@@ -943,13 +943,13 @@ export default function FloorTriggerPage() {
                       {/* Live Dynamic Total Batch Weight & Size indicator */}
                       <div className="flex items-center gap-2.5 shrink-0">
                         <div className="bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-lg flex flex-col justify-center min-w-[100px]">
-                          <span className="text-[8px] font-mono text-slate-500 uppercase">Batch Count</span>
+                          <span className="text-[8px] font-mono text-muted uppercase">Batch Count</span>
                           <span className="text-xs font-mono font-bold text-amber-400">
                             {activeBatchBundles.length} / {selectedGroupBundles.length}
                           </span>
                         </div>
                         <div className="bg-slate-900 border border-amber-500/20 px-3 py-1.5 rounded-lg flex flex-col justify-center min-w-[130px] shadow-inner shadow-amber-500/5">
-                          <span className="text-[8px] font-mono text-slate-500 uppercase">Total Batch Weight</span>
+                          <span className="text-[8px] font-mono text-muted uppercase">Total Batch Weight</span>
                           <span className="text-xs font-mono font-bold text-amber-500">
                             {activeBatchWeight.toLocaleString()} lbs
                           </span>
@@ -984,7 +984,7 @@ export default function FloorTriggerPage() {
                               className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xxs font-mono font-bold border transition-all cursor-pointer select-none ${
                                 isIncluded
                                   ? 'bg-amber-500/10 border-amber-500 text-amber-300 hover:bg-amber-500/20'
-                                  : 'bg-slate-900/60 border-slate-800/80 text-slate-500 hover:bg-slate-900/30 line-through'
+                                  : 'bg-slate-900/60 border-slate-800/80 text-muted hover:bg-slate-900/30 line-through'
                               }`}
                               title={isIncluded ? `Click to remove bundle ${b.tagId} from batch` : `Click to add bundle ${b.tagId} to batch`}
                             >
@@ -1084,7 +1084,7 @@ export default function FloorTriggerPage() {
             <Search className="h-3.5 w-3.5 text-amber-500" />
             Fab Queue Search Engine
           </label>
-          <p className="text-[9px] font-mono text-slate-500">
+          <p className="text-[9px] font-mono text-muted">
             Instantly filter Coating, Shearing, and bending fabrication queues by tag reference, mark, or job ID.
           </p>
         </div>
@@ -1097,7 +1097,7 @@ export default function FloorTriggerPage() {
             placeholder="Search Active Tag ID, Mark, Job ID..."
             className="w-full text-xs font-mono bg-slate-950 border border-slate-800 text-slate-200 placeholder-slate-600 rounded-lg pl-9 pr-8 py-2 focus:border-amber-500 focus:outline-hidden focus:ring-1 focus:ring-amber-500/20"
           />
-          <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-slate-500" />
+          <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-muted" />
           {searchText && (
             <button
               type="button"
@@ -1137,7 +1137,7 @@ export default function FloorTriggerPage() {
               <TabIcon className="h-4 w-4" />
               <span>{tab.label}</span>
               <span className={`px-1.5 py-0.5 rounded-full text-xxs font-mono ${
-                activeDept === tab.id ? 'bg-slate-950 text-amber-400' : 'bg-slate-950 text-slate-500'
+                activeDept === tab.id ? 'bg-slate-950 text-amber-400' : 'bg-slate-950 text-muted'
               }`}>
                 {tab.count}
               </span>
@@ -1153,13 +1153,13 @@ export default function FloorTriggerPage() {
         <div className="bg-slate-950/40 border border-slate-800 rounded-2xl p-6" id="coating-line-panel">
           <div className="mb-4">
             <h2 className="text-xs font-bold font-mono text-white uppercase tracking-widest mb-1">Staging for Electrostatic Powder Coating</h2>
-            <p className="text-xxs text-slate-500 leading-normal font-sans">
+            <p className="text-xxs text-muted leading-normal font-sans">
               All raw epoxy-coated rebar must process through the coating station before transfer to cut shears. Black rebar bypasses coating.
             </p>
           </div>
 
           {rawEpoxyFiltered.length === 0 ? (
-            <div className="text-center p-12 text-slate-500 font-mono text-xs border border-dashed border-slate-800 rounded-xl bg-slate-950/20">
+            <div className="text-center p-12 text-muted font-mono text-xs border border-dashed border-slate-800 rounded-xl bg-slate-950/20">
               No raw epoxy bundles found in current inventory.
             </div>
           ) : (
@@ -1192,7 +1192,7 @@ export default function FloorTriggerPage() {
                         )}
                       </div>
                       <div className="text-xxs font-mono text-slate-400 mt-1">Bar size {bundle.barSize} • {bundle.length}ft • {bundle.weight}lbs</div>
-                      <div className="text-xxs font-mono text-slate-500 mt-0.5 truncate max-w-[280px]">ROUTE: {bundle.route}</div>
+                      <div className="text-xxs font-mono text-muted mt-0.5 truncate max-w-[280px]">ROUTE: {bundle.route}</div>
                     </div>
                     <button
                       onClick={() => handleStageCoating(bundle.id)}
@@ -1214,13 +1214,13 @@ export default function FloorTriggerPage() {
         <div className="bg-slate-950/40 border border-slate-800 rounded-2xl p-6" id="shearing-beds-panel">
           <div className="mb-4">
             <h2 className="text-xs font-bold font-mono text-white uppercase tracking-widest mb-1">Shearing Station Beds (Cutting)</h2>
-            <p className="text-xxs text-slate-500 leading-normal font-sans">
+            <p className="text-xxs text-muted leading-normal font-sans">
               Cut bundles to design lengths. Shearing stations sit in the core dividing line between NW (Epoxy) and SW (Black) storage areas.
             </p>
           </div>
 
           {shearingQueueFiltered.length === 0 ? (
-            <div className="text-center p-12 text-slate-500 font-mono text-xs border border-dashed border-slate-800 rounded-xl bg-slate-950/20">
+            <div className="text-center p-12 text-muted font-mono text-xs border border-dashed border-slate-800 rounded-xl bg-slate-950/20">
               No bundles buffered in sizing staging buffer.
             </div>
           ) : (
@@ -1260,7 +1260,7 @@ export default function FloorTriggerPage() {
                       <p className="text-xxs font-mono text-slate-400">
                         Length requested: <span className="text-white font-bold">{bundle.length} ft</span> • {bundle.weight} lbs • Size: {bundle.barSize}
                       </p>
-                      <p className="text-[10px] font-mono text-slate-500 italic">Location: {bundle.location}</p>
+                      <p className="text-[10px] font-mono text-muted italic">Location: {bundle.location}</p>
                     </div>
                     
                     <div className="flex items-center gap-2">
@@ -1298,13 +1298,13 @@ export default function FloorTriggerPage() {
           <div className="bg-slate-950/40 border border-slate-800 rounded-2xl p-6">
             <div className="mb-4">
               <h2 className="text-xs font-bold font-mono text-white uppercase tracking-widest mb-1">Ready for Bender Routing</h2>
-              <p className="text-xxs text-slate-500 leading-normal font-sans">
+              <p className="text-xxs text-muted leading-normal font-sans">
                 Assign sized, sheared steel packs to bending machines for precise shape bending fabrication.
               </p>
             </div>
 
             {fabricationStagingFiltered.length === 0 ? (
-              <div className="text-center p-8 text-slate-500 font-mono text-xs border border-dashed border-slate-800 rounded-xl bg-slate-950/20">
+              <div className="text-center p-8 text-muted font-mono text-xs border border-dashed border-slate-800 rounded-xl bg-slate-950/20">
                 No sheaves ready at sheared buffers.
               </div>
             ) : (
@@ -1337,7 +1337,7 @@ export default function FloorTriggerPage() {
                           )}
                         </div>
                         <p className="text-xxs font-mono text-slate-400 mt-1">Design Specs: Size {bundle.barSize} • {bundle.length}ft • Cut complete</p>
-                        <p className="text-[10px] font-mono text-slate-500">Currently at Sheared Bed: {bundle.location}</p>
+                        <p className="text-[10px] font-mono text-muted">Currently at Sheared Bed: {bundle.location}</p>
                       </div>
 
                       <div className="flex items-center gap-2">
@@ -1372,13 +1372,13 @@ export default function FloorTriggerPage() {
           <div className="bg-slate-950/40 border border-slate-800 rounded-2xl p-6">
             <div className="mb-4">
               <h2 className="text-xs font-bold font-mono text-white uppercase tracking-widest mb-1">Active Fabrication Mandrels (CNC / Bender Queues)</h2>
-              <p className="text-xxs text-slate-500 leading-normal font-sans">
+              <p className="text-xxs text-muted leading-normal font-sans">
                 Monitor machine spindles. Bender operators must click "Mark Bent" once fabrication finishes to stage for crane transfer.
               </p>
             </div>
 
             {activeBendersListFiltered.length === 0 ? (
-              <div className="text-center p-8 text-slate-500 font-mono text-xs border border-dashed border-slate-800 rounded-xl bg-slate-950/20">
+              <div className="text-center p-8 text-muted font-mono text-xs border border-dashed border-slate-800 rounded-xl bg-slate-950/20">
                 All bending machine queues are empty.
               </div>
             ) : (
@@ -1401,7 +1401,7 @@ export default function FloorTriggerPage() {
                         {renderStatusBadge(bundle.status)}
                       </div>
                       <p className="text-xxs font-mono text-slate-400 mt-2">Tag Mark: {bundle.mark} • Grade: {bundle.grade}</p>
-                      <p className="text-xxs font-mono text-slate-500">Route target rack: {bundle.route.split(' -> ').slice(-2, -1)[0] || 'Unknown'}</p>
+                      <p className="text-xxs font-mono text-muted">Route target rack: {bundle.route.split(' -> ').slice(-2, -1)[0] || 'Unknown'}</p>
                     </div>
                     
                     <button
@@ -1488,7 +1488,7 @@ function CncSimulationModal({ bundle, onClose, onComplete }: CncSimulationModalP
           </div>
           <button 
             onClick={onClose}
-            className="text-slate-500 hover:text-white font-mono text-xs cursor-pointer select-none"
+            className="text-muted hover:text-white font-mono text-xs cursor-pointer select-none"
           >
             ✕ CANCEL
           </button>
@@ -1497,7 +1497,7 @@ function CncSimulationModal({ bundle, onClose, onComplete }: CncSimulationModalP
         {/* S6. Machine Mandrel Rotation Display and Stats */}
         <div className="space-y-4">
           <div className="p-4 bg-slate-950 rounded-xl border border-slate-800/60 font-mono text-xxs space-y-2">
-            <span className="text-slate-500 block uppercase text-[8px] font-black">CNC Spindle Telemetry</span>
+            <span className="text-muted block uppercase text-[8px] font-black">CNC Spindle Telemetry</span>
             <div className="flex justify-between">
               <span className="text-slate-400">Target Material:</span>
               <span className="font-bold text-white">{bundle.tagId} ({bundle.grade})</span>
@@ -1536,7 +1536,7 @@ function CncSimulationModal({ bundle, onClose, onComplete }: CncSimulationModalP
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
                 <span className="text-sm font-mono font-extrabold text-white">{progress}%</span>
-                <span className="text-[7px] text-slate-500 uppercase tracking-widest font-mono">Spindle</span>
+                <span className="text-[7px] text-muted uppercase tracking-widest font-mono">Spindle</span>
               </div>
             </div>
             <span className="text-[10px] text-slate-400 font-mono italic">

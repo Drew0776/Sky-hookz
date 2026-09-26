@@ -28,7 +28,7 @@ export default function YardMapLegend({
               </span>
               <div className="flex-1 min-w-0">
                 <span className="text-[10px] font-bold text-slate-200 block uppercase tracking-wide leading-none">{item.name}</span>
-                <span className="text-[9px] text-slate-500 block mt-1 leading-normal">{item.desc}</span>
+                <span className="text-[9px] text-muted block mt-1 leading-normal">{item.desc}</span>
                 
                 <div className="mt-2.5 flex items-center justify-between text-[10px] font-mono border-t border-slate-900/65 pt-1.5">
                   <span className="text-slate-400 text-[9px] uppercase tracking-wider">Total Wt:</span>
@@ -38,7 +38,7 @@ export default function YardMapLegend({
                       : `${getHeatmapCategoryWeight(item.id).toLocaleString()} LBS`}
                   </span>
                 </div>
-                <div className="mt-1 flex items-center justify-between text-[9px] text-slate-500">
+                <div className="mt-1 flex items-center justify-between text-[9px] text-muted">
                   <span className="uppercase tracking-wider">Sectors:</span>
                   <span className="font-extrabold text-slate-300 font-mono">
                     {getHeatmapCategoryZones(item.id).length} zones
@@ -57,18 +57,18 @@ export default function YardMapLegend({
                   </div>
                   <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-[9px] font-mono text-slate-400">
                     <div>
-                      <span className="text-slate-500 block uppercase text-[7px] font-bold">Capacity Metric:</span>
+                      <span className="text-muted block uppercase text-[7px] font-bold">Capacity Metric:</span>
                       <span className="text-amber-500 font-bold">{item.info.metric}</span>
                     </div>
                     <div>
-                      <span className="text-slate-500 block uppercase text-[7px] font-bold">Staging Action:</span>
+                      <span className="text-muted block uppercase text-[7px] font-bold">Staging Action:</span>
                       <span className="text-slate-200 font-bold">{item.info.action}</span>
                     </div>
                     <div className="col-span-2 mt-1">
-                      <span className="text-slate-500 block uppercase text-[7px] font-bold">Coordinator:</span>
+                      <span className="text-muted block uppercase text-[7px] font-bold">Coordinator:</span>
                       <span className="text-slate-200 font-bold">{item.info.technician}</span>
                     </div>
-                    <div className="col-span-2 mt-1 border-t border-slate-800/60 pt-1 text-[8px] text-slate-500 leading-relaxed italic">
+                    <div className="col-span-2 mt-1 border-t border-slate-800/60 pt-1 text-[8px] text-muted leading-relaxed italic">
                       {item.info.note}
                     </div>
                   </div>
@@ -89,7 +89,7 @@ export default function YardMapLegend({
               </span>
               <div className="flex-1 min-w-0">
                 <span className="text-[10px] font-bold text-slate-200 block uppercase tracking-wide leading-none">{item.name}</span>
-                <span className="text-[9px] text-slate-500 block mt-1 leading-normal">{item.desc}</span>
+                <span className="text-[9px] text-muted block mt-1 leading-normal">{item.desc}</span>
                 
                 <div className="mt-2.5 flex items-center justify-between text-[10px] font-mono border-t border-slate-900/65 pt-1.5">
                   <span className="text-slate-400 text-[9px] uppercase tracking-wider">Total Wt:</span>
@@ -108,26 +108,26 @@ export default function YardMapLegend({
                   </div>
                   <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-[9px] font-mono text-slate-400">
                     <div>
-                      <span className="text-slate-500 block uppercase text-[7px] font-bold">Maint. Cycle:</span>
+                      <span className="text-muted block uppercase text-[7px] font-bold">Maint. Cycle:</span>
                       <span className="text-amber-500 font-bold">{item.maintenance.schedule}</span>
                     </div>
                     <div>
-                      <span className="text-slate-500 block uppercase text-[7px] font-bold">Last Service:</span>
+                      <span className="text-muted block uppercase text-[7px] font-bold">Last Service:</span>
                       <span className="text-slate-200 font-bold">{item.maintenance.lastService}</span>
                     </div>
                     <div>
-                      <span className="text-slate-500 block uppercase text-[7px] font-bold">Next Service:</span>
+                      <span className="text-muted block uppercase text-[7px] font-bold">Next Service:</span>
                       <span className="text-slate-200 font-bold">{item.maintenance.nextService}</span>
                     </div>
                     <div>
-                      <span className="text-slate-500 block uppercase text-[7px] font-bold">Technician:</span>
+                      <span className="text-muted block uppercase text-[7px] font-bold">Technician:</span>
                       <span className="text-slate-200 font-bold overflow-hidden text-ellipsis whitespace-nowrap block">{item.maintenance.technician.split(' ')[0]}</span>
                     </div>
                     <div className="col-span-2 mt-1">
-                      <span className="text-slate-500 block uppercase text-[7px] font-bold">Assignee Role:</span>
+                      <span className="text-muted block uppercase text-[7px] font-bold">Assignee Role:</span>
                       <span className="text-indigo-400 font-bold">{item.maintenance.technician}</span>
                     </div>
-                    <div className="col-span-2 mt-1 border-t border-slate-800/60 pt-1 text-[8px] text-slate-500 leading-relaxed italic">
+                    <div className="col-span-2 mt-1 border-t border-slate-800/60 pt-1 text-[8px] text-muted leading-relaxed italic">
                       {item.maintenance.note}
                     </div>
                   </div>
