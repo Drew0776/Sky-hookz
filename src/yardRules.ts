@@ -76,6 +76,42 @@ export function gradeZoneViolation(grade: RebarGrade, location: string, status?:
   return null;
 }
 
+/* ---------- Black never touches coated ---------- */
+
+type Surfaced = { id: string; tagId: string; grade: RebarGrade; status?: string; location: string };
+
+/**
+ * Whether a bundle's bar is epoxy-coated yet. All bar arrives black: epoxy-ordered bar is still black
+ * while RAW at Raw-SW or STAGED at the coat line waiting its turn.
+ */
+export function isCoated(b: { grade: RebarGrade; status?: string; location: string }): boolean {
+  if (b.grade !== 'Epoxy' || b.status === 'RAW') return false;
+  return !(b.location === 'Coat-Station' && b.status === 'STAGED');
+}
+
+/** Whether `moving` will be coated once set down at `destination`. */
+function coatedAfterMove(moving: Surfaced, destination: string): boolean {
+  if (isCoated(moving)) return true;
+  // Bar leaving the coat line for anywhere else has been through it
+  return moving.grade === 'Epoxy' && moving.location === 'Coat-Station' && destination !== 'Coat-Station';
+}
+
+/** A bundle at `destination` with the other surface: black steel never touches coated steel, at any stage. */
+export function mixedSurfaceConflict<T extends Surfaced>(moving: T, destination: string, all: T[]): T | undefined {
+  const coated = coatedAfterMove(moving, destination);
+  return all.find(b => b.location === destination && b.id !== moving.id && isCoated(b) !== coated);
+}
+
+/** Every grade rule for setting `moving` down at `destination` (zoning, then black never touching coated), or null. */
+export function gradePlacementViolation<T extends Surfaced>(moving: T, destination: string, all: T[]): string | null {
+  const zone = gradeZoneViolation(moving.grade, destination, moving.status);
+  if (zone) return zone;
+  const other = mixedSurfaceConflict(moving, destination, all);
+  if (!other) return null;
+  const surface = coatedAfterMove(moving, destination) ? 'coated' : 'black';
+  return `CRITICAL: Black and coated steel never touch. ${moving.tagId} is ${surface} bar and ${destination} holds ${surface === 'coated' ? 'black' : 'coated'} bar (${other.tagId}).`;
+}
+
 /* ---------- Dynamic slotting ---------- */
 
 /** A bundle already at `destination` that ships before `moving`, which the move would bury. */

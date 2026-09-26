@@ -34,7 +34,7 @@ import {
   zoneQuadrants 
 } from './yardMapData';
 import { getRouteAnalysisByZones } from '../utils/yardMath';
-import { getZoneCapacity, gradeZoneViolation, movementBlockedReason, OVERLOAD_RATIO, slottingConflict, SLOW_MODE_RATIO } from '../yardRules';
+import { getZoneCapacity, gradePlacementViolation, movementBlockedReason, OVERLOAD_RATIO, slottingConflict, SLOW_MODE_RATIO } from '../yardRules';
 import { clickable } from '../utils/clickable';
 
 export default function YardMapPage() {
@@ -285,7 +285,7 @@ export default function YardMapPage() {
     const blocked = movementBlockedReason(routeBundle);
     if (blocked) routeRuleIssues.push(blocked);
     if (routeDestination.startsWith('Crane-')) routeRuleIssues.push('A gantry position is not a place to set a bundle down.');
-    const zoneError = gradeZoneViolation(routeBundle.grade, routeDestination, routeBundle.status);
+    const zoneError = gradePlacementViolation(routeBundle, routeDestination, bundles);
     if (zoneError) routeRuleIssues.push(zoneError);
     const conflict = slottingConflict(routeBundle, routeDestination, bundles);
     if (conflict) routeRuleIssues.push(`Bundle ${conflict.tagId} at ${routeDestination} ships sooner (${new Date(conflict.shippingDate).toLocaleDateString()}) and would be buried.`);

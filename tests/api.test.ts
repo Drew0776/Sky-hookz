@@ -175,3 +175,10 @@ test('a coated epoxy bundle cannot be set down in Raw-SW black-bar stock', async
   assert.equal(r.status, 400);
   assert.match(r.json.error, /never go back into Raw-SW/);
 });
+
+test('black bar cannot be staged where coated bar sits', async () => {
+  // Shear-North holds coated TG-104; TG-203 is raw black bar
+  const r = await call('POST', '/api/bundles/TG-203/stage', { location: 'Shear-North' });
+  assert.equal(r.status, 400);
+  assert.match(r.json.error, /never touch/);
+});

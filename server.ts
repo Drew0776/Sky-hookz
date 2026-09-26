@@ -7,17 +7,7 @@ import { INITIAL_BUNDLES, INITIAL_JOBS, INITIAL_OPERATORS, INITIAL_EXCEPTIONS, I
 import { zoneCoords } from './src/pages/yardMapData';
 import { getRouteAnalysisByZones } from './src/utils/yardMath';
 import {
-  MAX_ZONE_CAPACITY_LBS,
-  MIN_ZONE_CAPACITY_LBS,
-  SHIPPING_DOORS,
-  computeDashboardMetrics,
-  gradeZoneViolation,
-  isValidYardLocation,
-  movementBlockedReason,
-  slottingConflict,
-  slottingViolationMessage,
-  stagedAtAfterMove,
-  statusAfterDrop
+  computeDashboardMetrics, gradePlacementViolation, isValidYardLocation, MAX_ZONE_CAPACITY_LBS, MIN_ZONE_CAPACITY_LBS, movementBlockedReason, SHIPPING_DOORS, slottingConflict, slottingViolationMessage, stagedAtAfterMove, statusAfterDrop
 } from './src/yardRules';
 
 // Store state in-memory so modifications persist during runtime.
@@ -280,7 +270,7 @@ app.post('/api/gantry/execute-route', (req, res) => {
       res.status(400).json({ error: blocked });
       return;
     }
-    const zoneError = gradeZoneViolation(targetBundle.grade, destinationId, targetBundle.status);
+    const zoneError = gradePlacementViolation(targetBundle, destinationId, bundles);
     if (zoneError) {
       res.status(400).json({ error: zoneError });
       return;
@@ -501,7 +491,7 @@ app.post('/api/bundles/:bundleId/stage', (req, res) => {
     res.status(400).json({ error: blocked });
     return;
   }
-  const zoneError = gradeZoneViolation(bundle.grade, location, bundle.status);
+  const zoneError = gradePlacementViolation(bundle, location, bundles);
   if (zoneError) {
     res.status(400).json({ error: zoneError });
     return;
@@ -578,7 +568,7 @@ app.post('/api/bundles/:bundleId/drop', (req, res) => {
   }
 
   // Black bar stays SW; epoxy stays out of black-bar racks and SW shipping doors
-  const zoneError = gradeZoneViolation(bundle.grade, location, bundle.status);
+  const zoneError = gradePlacementViolation(bundle, location, bundles);
   if (zoneError) {
     res.status(400).json({ error: zoneError });
     return;
@@ -616,6 +606,12 @@ app.post('/api/bundles/:bundleId/send-to-bender', (req, res) => {
   const blocked = movementBlockedReason(bundle);
   if (blocked) {
     res.status(400).json({ error: blocked });
+    return;
+  }
+
+  const mixError = gradePlacementViolation(bundle, benderId, bundles);
+  if (mixError) {
+    res.status(400).json({ error: mixError });
     return;
   }
 
@@ -672,7 +668,7 @@ app.post('/api/bundles/:bundleId/force-load', (req, res) => {
   }
 
   // Material zone rules check
-  const zoneError = gradeZoneViolation(bundle.grade, door, bundle.status);
+  const zoneError = gradePlacementViolation(bundle, door, bundles);
   if (zoneError) {
     res.status(400).json({
       error: bundle.grade === 'Black'
@@ -727,6 +723,11 @@ app.post('/api/bundles/bulk-action', (req, res) => {
       }
       // Smart default door per grade: black ships SW, epoxy ships NW
       const door = bundle.grade === 'Black' ? 'Door-7' : 'Door-1';
+      const placeError = gradePlacementViolation(bundle, door, bundles);
+      if (placeError) {
+        errors.push(placeError);
+        continue;
+      }
       placeBundle(bundle, door, 'LOADED');
       bundle.trailerSize = 'Flatbed';
 
@@ -734,12 +735,22 @@ app.post('/api/bundles/bulk-action', (req, res) => {
       results.push(bundle);
     } else if (action === 'STAGE') {
       const location = bundle.grade === 'Black' ? 'Raw-SW' : 'Coat-Station';
+      const placeError = gradePlacementViolation(bundle, location, bundles);
+      if (placeError) {
+        errors.push(placeError);
+        continue;
+      }
       placeBundle(bundle, location, 'STAGED');
 
       logActivity(bundle.tagId, operatorName || 'Shear Operator', 'STAGED', oldLoc, bundle.location, `Bulk staged at ${bundle.location}`);
       results.push(bundle);
     } else if (action === 'SEND_TO_FABRICATION') {
       const benderId = bundle.grade === 'Black' ? 'Bender-11-Bender' : 'Bender-New-Robo';
+      const placeError = gradePlacementViolation(bundle, benderId, bundles);
+      if (placeError) {
+        errors.push(placeError);
+        continue;
+      }
       placeBundle(bundle, benderId, 'BENDING');
 
       logActivity(bundle.tagId, operatorName || 'Shear Operator', 'BENDING_START', oldLoc, bundle.location, `Bulk sent to fabrication at ${benderId}`);
