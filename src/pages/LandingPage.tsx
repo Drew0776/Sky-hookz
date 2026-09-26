@@ -179,7 +179,7 @@ export default function LandingPage() {
             ) : (
               activities.map((ev) => (
                 <div key={ev.id} className="p-3.5 hover:bg-slate-900/20 transition-colors flex items-start gap-3 text-xs">
-                  <div className="mt-0.5 rounded-sm bg-slate-905 p-1.5 text-slate-400 border border-slate-800 font-mono text-[9px] scale-95 font-bold">
+                  <div className="mt-0.5 rounded-sm bg-slate-900 p-1.5 text-slate-400 border border-slate-800 font-mono text-[9px] scale-95 font-bold">
                     {ev.action}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -229,7 +229,7 @@ export default function LandingPage() {
             </p>
             <button
               onClick={() => setIsHandoffOpen(true)}
-              className="w-full text-center bg-amber-500 hover:bg-amber-450 text-slate-950 font-mono text-xxs font-bold py-2 rounded-lg transition-all cursor-pointer shadow-xs uppercase"
+              className="w-full text-center bg-amber-500 hover:bg-amber-400 text-slate-950 font-mono text-xxs font-bold py-2 rounded-lg transition-all cursor-pointer shadow-xs uppercase"
             >
               🤝 Run Handoff Wizard
             </button>
@@ -365,7 +365,7 @@ function HandoffWizardModal({ onClose, onComplete, bundles }: HandoffWizardModal
 
   return (
     <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fadeIn" id="handoff-wizard-modal">
-      <div className="bg-slate-900 border border-slate-850 rounded-2xl w-full max-w-md p-6 space-y-5 shadow-2xl relative overflow-hidden text-left">
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 space-y-5 shadow-2xl relative overflow-hidden text-left">
         <div className="absolute top-0 left-0 h-1.5 w-full bg-gradient-to-r from-teal-500 to-amber-500"></div>
 
         <div className="flex items-center justify-between border-b border-slate-800 pb-3">
@@ -377,14 +377,14 @@ function HandoffWizardModal({ onClose, onComplete, bundles }: HandoffWizardModal
 
         {step === 1 ? (
           <div className="space-y-4">
-            <span className="text-[9px] font-mono text-slate-505 uppercase tracking-widest font-black block border-b border-slate-955 pb-1 text-slate-500">
+            <span className="text-[9px] font-mono text-slate-500 uppercase tracking-widest font-black block border-b border-slate-950 pb-1 text-slate-500">
               Step 1: Shift Safety Checkpoint
             </span>
-            <p className="text-xxs text-slate-405 font-sans leading-relaxed text-slate-400">
+            <p className="text-xxs text-slate-400 font-sans leading-relaxed text-slate-400">
               Before passing control to the incoming crew, the outgoing supervisor must explicitly verify the following physical safeguards:
             </p>
 
-            <div className="space-y-3 font-mono text-xxs bg-slate-950/50 p-4 border border-slate-850 rounded-xl text-left">
+            <div className="space-y-3 font-mono text-xxs bg-slate-950/50 p-4 border border-slate-800 rounded-xl text-left">
               <label className="flex items-start gap-2.5 text-slate-300 hover:text-white cursor-pointer select-none">
                 <input 
                   type="checkbox"
@@ -419,7 +419,7 @@ function HandoffWizardModal({ onClose, onComplete, bundles }: HandoffWizardModal
             <button
               onClick={() => setStep(2)}
               disabled={!lockoutChecked || !housekeepingChecked || !craneCalibrated}
-              className="w-full text-center py-2 bg-amber-500 hover:bg-amber-450 disabled:bg-slate-950 disabled:text-slate-600 disabled:border-slate-850 text-slate-950 font-mono text-xxs font-bold rounded-lg border border-amber-500 select-none cursor-pointer transition-colors"
+              className="w-full text-center py-2 bg-amber-500 hover:bg-amber-400 disabled:bg-slate-950 disabled:text-slate-600 disabled:border-slate-800 text-slate-950 font-mono text-xxs font-bold rounded-lg border border-amber-500 select-none cursor-pointer transition-colors"
             >
               PROCEED TO OBSERVATIONS ▶
             </button>
@@ -430,7 +430,7 @@ function HandoffWizardModal({ onClose, onComplete, bundles }: HandoffWizardModal
               Step 2: Operations Balance & Notes
             </span>
 
-            <div className="space-y-2.5 p-3 bg-slate-950 rounded-xl border border-slate-850 text-xxs font-mono">
+            <div className="space-y-2.5 p-3 bg-slate-950 rounded-xl border border-slate-800 text-xxs font-mono">
               <span className="text-slate-500 text-[8px] uppercase font-black">Automatic Balance Count</span>
               <div className="flex justify-between">
                 <span className="text-slate-400">Total rebar packs tracked:</span>
@@ -457,7 +457,7 @@ function HandoffWizardModal({ onClose, onComplete, bundles }: HandoffWizardModal
               <button
                 type="button"
                 onClick={() => setStep(1)}
-                className="flex-1 text-center py-2 bg-slate-950 text-slate-400 hover:text-white font-mono text-xxs font-bold rounded-lg border border-slate-850 select-none cursor-pointer transition-colors"
+                className="flex-1 text-center py-2 bg-slate-950 text-slate-400 hover:text-white font-mono text-xxs font-bold rounded-lg border border-slate-800 select-none cursor-pointer transition-colors"
               >
                 ◀ BACK
               </button>
@@ -465,7 +465,7 @@ function HandoffWizardModal({ onClose, onComplete, bundles }: HandoffWizardModal
                 type="button"
                 onClick={handleFinish}
                 disabled={loadingComplete}
-                className="flex-1 text-center py-2 bg-emerald-500 hover:bg-emerald-450 text-slate-950 font-mono text-xxs font-bold rounded-lg select-none cursor-pointer transition-colors border border-emerald-500"
+                className="flex-1 text-center py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-mono text-xxs font-bold rounded-lg select-none cursor-pointer transition-colors border border-emerald-500"
               >
                 {loadingComplete ? 'SUBMITTING...' : 'COMPILE & HANDOFF'}
               </button>

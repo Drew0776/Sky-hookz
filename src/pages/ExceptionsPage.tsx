@@ -397,7 +397,7 @@ export default function ExceptionsPage() {
             </h3>
 
             {openExceptions.length === 0 ? (
-              <div className="text-center p-8 border border-dashed border-slate-800 rounded-xl bg-slate-950/20 font-mono text-xs text-slate-550">
+              <div className="text-center p-8 border border-dashed border-slate-800 rounded-xl bg-slate-950/20 font-mono text-xs text-slate-500">
                 All production lines report clean sheets. No hold active.
               </div>
             ) : (
@@ -437,7 +437,7 @@ export default function ExceptionsPage() {
                           ARCHIVE RESOLVED
                         </button>
                       ) : (
-                        <span className="font-mono text-[9px] text-slate-550 uppercase select-none tracking-wider flex items-center gap-1">
+                        <span className="font-mono text-[9px] text-slate-500 uppercase select-none tracking-wider flex items-center gap-1">
                           <Lock className="h-3 w-3" /> Admin Only
                         </span>
                       )}
@@ -455,7 +455,7 @@ export default function ExceptionsPage() {
             </h3>
 
             {resolvedExceptions.length === 0 ? (
-              <p className="text-center font-mono text-xxs text-slate-650 py-8">No archived deviation reports listed.</p>
+              <p className="text-center font-mono text-xxs text-slate-600 py-8">No archived deviation reports listed.</p>
             ) : (
               <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
                 {resolvedExceptions.map((ex) => (

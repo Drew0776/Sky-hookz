@@ -705,7 +705,7 @@ export default function FloorTriggerPage() {
     switch (status) {
       case 'RAW':
         return (
-          <span className="transition-all duration-300 inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[9px] font-mono font-bold tracking-wider border bg-sky-500/10 text-sky-450 border-sky-500/20 hover:bg-sky-500/20 hover:border-sky-500/40 select-none">
+          <span className="transition-all duration-300 inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[9px] font-mono font-bold tracking-wider border bg-sky-500/10 text-sky-400 border-sky-500/20 hover:bg-sky-500/20 hover:border-sky-500/40 select-none">
             <span className="relative flex h-1.5 w-1.5 shrink-0">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-sky-500"></span>
@@ -725,7 +725,7 @@ export default function FloorTriggerPage() {
         );
       case 'STAGED':
         return (
-          <span className="transition-all duration-300 inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[9px] font-mono font-bold tracking-wider border bg-indigo-500/15 text-indigo-455 border-indigo-500/20 hover:bg-indigo-500/25 hover:border-indigo-500/40 select-none animate-pulse">
+          <span className="transition-all duration-300 inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[9px] font-mono font-bold tracking-wider border bg-indigo-500/15 text-indigo-400 border-indigo-500/20 hover:bg-indigo-500/25 hover:border-indigo-500/40 select-none animate-pulse">
             <span className="relative flex h-1.5 w-1.5 shrink-0">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-indigo-500"></span>
@@ -824,7 +824,7 @@ export default function FloorTriggerPage() {
           </div>
 
           {/* Grouping Toggle Controls */}
-          <div className="flex items-center gap-1.5 shrink-0 bg-slate-950 p-1 rounded-xl border border-slate-850">
+          <div className="flex items-center gap-1.5 shrink-0 bg-slate-950 p-1 rounded-xl border border-slate-800">
             <button
               onClick={() => {
                 setGroupingCriteria('route');
@@ -858,7 +858,7 @@ export default function FloorTriggerPage() {
 
         {/* Suggestion Groups Grid */}
         {Object.keys(groupedSuggestions).length === 0 || activeTabQueue.length === 0 ? (
-          <div className="text-center py-6 text-slate-500 font-mono text-xxs border border-dashed border-slate-850 rounded-xl bg-slate-950/10">
+          <div className="text-center py-6 text-slate-500 font-mono text-xxs border border-dashed border-slate-800 rounded-xl bg-slate-950/10">
             No active bundles in the {activeDept === 'coating' ? 'Coating' : activeDept === 'shearing' ? 'Shearing' : 'Bending'} queue to optimize.
           </div>
         ) : (
@@ -875,7 +875,7 @@ export default function FloorTriggerPage() {
                     className={`p-3.5 rounded-xl border cursor-pointer select-none transition-all flex flex-col justify-between ${
                       isSelected
                         ? 'bg-amber-500/10 border-amber-500 ring-1 ring-amber-500/30 shadow-lg shadow-amber-500/5'
-                        : 'bg-slate-950/60 border-slate-850 hover:bg-slate-900/30 hover:border-slate-800'
+                        : 'bg-slate-950/60 border-slate-800 hover:bg-slate-900/30 hover:border-slate-800'
                     }`}
                   >
                     <div>
@@ -899,7 +899,7 @@ export default function FloorTriggerPage() {
                       </p>
                     </div>
 
-                    <div className="mt-3 pt-2.5 border-t border-slate-850/50 flex items-center justify-between">
+                    <div className="mt-3 pt-2.5 border-t border-slate-800/50 flex items-center justify-between">
                       <span className="text-[9px] font-mono text-slate-500">Weight Load:</span>
                       <span className="text-xxs font-mono font-medium text-slate-300">
                         {totalWeight.toLocaleString()} lbs
@@ -926,7 +926,7 @@ export default function FloorTriggerPage() {
                     exit={{ opacity: 0, y: -8 }}
                     className="bg-slate-950/90 border border-amber-500/20 rounded-xl p-4 md:p-5 flex flex-col gap-4"
                   >
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-855 pb-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
                       <div className="space-y-1">
                         <span className="text-[9px] font-mono uppercase tracking-widest text-amber-500 font-black block flex items-center gap-1">
                           <Zap className="h-2.5 w-2.5 text-amber-500 animate-pulse" /> ACTIVE BATCH ROUTING SUGGESTION
@@ -941,7 +941,7 @@ export default function FloorTriggerPage() {
 
                       {/* Live Dynamic Total Batch Weight & Size indicator */}
                       <div className="flex items-center gap-2.5 shrink-0">
-                        <div className="bg-slate-900 border border-slate-850 px-3 py-1.5 rounded-lg flex flex-col justify-center min-w-[100px]">
+                        <div className="bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-lg flex flex-col justify-center min-w-[100px]">
                           <span className="text-[8px] font-mono text-slate-500 uppercase">Batch Count</span>
                           <span className="text-xs font-mono font-bold text-amber-400">
                             {activeBatchBundles.length} / {selectedGroupBundles.length}
@@ -963,7 +963,7 @@ export default function FloorTriggerPage() {
                           Include / Exclude Bundles from this Batch:
                         </span>
                         {activeBatchBundles.length === 0 && (
-                          <span className="text-[9px] font-mono text-rose-450 font-bold bg-rose-500/10 px-2 py-0.5 rounded animate-pulse">
+                          <span className="text-[9px] font-mono text-rose-400 font-bold bg-rose-500/10 px-2 py-0.5 rounded animate-pulse">
                             🚨 Empty Batch! Please select at least one bundle.
                           </span>
                         )}
@@ -983,7 +983,7 @@ export default function FloorTriggerPage() {
                               className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xxs font-mono font-bold border transition-all cursor-pointer select-none ${
                                 isIncluded
                                   ? 'bg-amber-500/10 border-amber-500 text-amber-300 hover:bg-amber-500/20'
-                                  : 'bg-slate-900/60 border-slate-850/80 text-slate-500 hover:bg-slate-900/30 line-through'
+                                  : 'bg-slate-900/60 border-slate-800/80 text-slate-500 hover:bg-slate-900/30 line-through'
                               }`}
                               title={isIncluded ? `Click to remove bundle ${b.tagId} from batch` : `Click to add bundle ${b.tagId} to batch`}
                             >
@@ -997,7 +997,7 @@ export default function FloorTriggerPage() {
                     </div>
 
                     {/* Footer Actions Row */}
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-t border-slate-850/40 pt-4 mt-2">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-t border-slate-800/40 pt-4 mt-2">
                       <div className="text-[10px] text-slate-400 leading-normal">
                         {activeBatchBundles.length > 0 ? (
                           <span className="text-slate-300">
@@ -1026,7 +1026,7 @@ export default function FloorTriggerPage() {
                             <select
                               value={batchShearBed}
                               onChange={(e) => setBatchShearBed(e.target.value)}
-                              className="bg-slate-900 text-slate-350 border border-slate-800 rounded-lg px-3 py-1.8 text-xxs font-mono focus:border-amber-500"
+                              className="bg-slate-900 text-slate-300 border border-slate-800 rounded-lg px-3 py-1.8 text-xxs font-mono focus:border-amber-500"
                             >
                               <option value="">-- Choose Shear Bed --</option>
                               <option value="Shear-North">Shear Bed - North</option>
@@ -1048,7 +1048,7 @@ export default function FloorTriggerPage() {
                             <select
                               value={batchBenderMachine}
                               onChange={(e) => setBatchBenderMachine(e.target.value)}
-                              className="bg-slate-900 text-slate-350 border border-slate-800 rounded-lg px-3 py-1.8 text-xxs font-mono focus:border-amber-500"
+                              className="bg-slate-900 text-slate-300 border border-slate-800 rounded-lg px-3 py-1.8 text-xxs font-mono focus:border-amber-500"
                             >
                               <option value="">-- Select Bender Machine --</option>
                               <option value="Bender-New-Robo">Bender - New-Robo CNC</option>
@@ -1094,7 +1094,7 @@ export default function FloorTriggerPage() {
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
             placeholder="Search Active Tag ID, Mark, Job ID..."
-            className="w-full text-xs font-mono bg-slate-950 border border-slate-850 text-slate-200 placeholder-slate-650 rounded-lg pl-9 pr-8 py-2 focus:border-amber-500 focus:outline-hidden focus:ring-1 focus:ring-amber-500/20"
+            className="w-full text-xs font-mono bg-slate-950 border border-slate-800 text-slate-200 placeholder-slate-600 rounded-lg pl-9 pr-8 py-2 focus:border-amber-500 focus:outline-hidden focus:ring-1 focus:ring-amber-500/20"
           />
           <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-slate-500" />
           {searchText && (
@@ -1171,7 +1171,7 @@ export default function FloorTriggerPage() {
                     className={`p-4 border rounded-xl flex items-center justify-between hover:border-slate-800 transition-all ${
                       highlighted 
                         ? 'bg-amber-500/5 border-amber-500 ring-1 ring-amber-500/20 shadow-md shadow-amber-500/5 animate-pulse' 
-                        : 'bg-slate-900/40 border-slate-850 hover:border-slate-850'
+                        : 'bg-slate-900/40 border-slate-800 hover:border-slate-800'
                     }`}
                   >
                     <div>
@@ -1232,7 +1232,7 @@ export default function FloorTriggerPage() {
                     className={`p-4 rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all ${
                       highlighted
                         ? 'bg-amber-500/5 border-amber-500 ring-1 ring-amber-500/20 shadow-md shadow-amber-500/5 animate-pulse'
-                        : 'bg-slate-900/20 border-slate-850/60 hover:border-slate-800'
+                        : 'bg-slate-900/20 border-slate-800/60 hover:border-slate-800'
                     }`}
                   >
                     <div className="space-y-1">
@@ -1259,7 +1259,7 @@ export default function FloorTriggerPage() {
                       <p className="text-xxs font-mono text-slate-400">
                         Length requested: <span className="text-white font-bold">{bundle.length} ft</span> • {bundle.weight} lbs • Size: {bundle.barSize}
                       </p>
-                      <p className="text-[10px] font-mono text-slate-550 italic">Location: {bundle.location}</p>
+                      <p className="text-[10px] font-mono text-slate-500 italic">Location: {bundle.location}</p>
                     </div>
                     
                     <div className="flex items-center gap-2">
@@ -1316,7 +1316,7 @@ export default function FloorTriggerPage() {
                       className={`p-4 rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all ${
                         highlighted
                           ? 'bg-amber-500/5 border-amber-500 ring-1 ring-amber-500/20 shadow-md shadow-amber-500/5 animate-pulse'
-                          : 'bg-slate-900/20 border-slate-850'
+                          : 'bg-slate-900/20 border-slate-800'
                       }`}
                     >
                       <div>
@@ -1495,7 +1495,7 @@ function CncSimulationModal({ bundle, onClose, onComplete }: CncSimulationModalP
 
         {/* S6. Machine Mandrel Rotation Display and Stats */}
         <div className="space-y-4">
-          <div className="p-4 bg-slate-950 rounded-xl border border-slate-850/60 font-mono text-xxs space-y-2">
+          <div className="p-4 bg-slate-950 rounded-xl border border-slate-800/60 font-mono text-xxs space-y-2">
             <span className="text-slate-500 block uppercase text-[8px] font-black">CNC Spindle Telemetry</span>
             <div className="flex justify-between">
               <span className="text-slate-400">Target Material:</span>
@@ -1545,7 +1545,7 @@ function CncSimulationModal({ bundle, onClose, onComplete }: CncSimulationModalP
         </div>
 
         {/* Quality Certification checklist (Required before completion) */}
-        <div className="space-y-3 bg-slate-950/50 p-4 border border-slate-850/80 rounded-xl">
+        <div className="space-y-3 bg-slate-950/50 p-4 border border-slate-800/80 rounded-xl">
           <span className="text-[9px] font-mono uppercase tracking-widest text-slate-400 font-bold block pb-1 border-b border-slate-900">
             Mandatory QA Inspection Checklist
           </span>
@@ -1589,8 +1589,8 @@ function CncSimulationModal({ bundle, onClose, onComplete }: CncSimulationModalP
           disabled={!isQcPassed}
           className={`w-full py-2.5 rounded-xl font-mono text-xs font-bold transition-all border text-center ${
             isQcPassed 
-              ? 'bg-emerald-500 text-slate-950 border-emerald-500 hover:bg-emerald-450 cursor-pointer shadow-lg shadow-emerald-500/10'
-              : 'bg-slate-950 text-slate-600 border-slate-900 cursor-not-allowed text-slate-650'
+              ? 'bg-emerald-500 text-slate-950 border-emerald-500 hover:bg-emerald-400 cursor-pointer shadow-lg shadow-emerald-500/10'
+              : 'bg-slate-950 text-slate-600 border-slate-900 cursor-not-allowed text-slate-600'
           }`}
         >
           {progress < 100 

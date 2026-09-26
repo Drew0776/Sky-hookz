@@ -205,19 +205,19 @@ export default function CraneCabPage() {
           </div>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 pt-1 text-slate-400 font-mono text-[10px]">
             <div>
-              <span className="text-slate-550 block uppercase text-[8px] font-bold">WIND VELOCITY</span>
+              <span className="text-slate-500 block uppercase text-[8px] font-bold">WIND VELOCITY</span>
               <span className="text-white font-extrabold flex items-center gap-1">💨 14.5 knots <span className="text-emerald-400 text-[8px] font-normal">[SAFE]</span></span>
             </div>
             <div>
-              <span className="text-slate-550 block uppercase text-[8px] font-bold">GANTRY RAIL SPEED</span>
+              <span className="text-slate-500 block uppercase text-[8px] font-bold">GANTRY RAIL SPEED</span>
               <span className="text-white font-extrabold">⚡ 2.4 m/s</span>
             </div>
             <div>
-              <span className="text-slate-550 block uppercase text-[8px] font-bold">HOIST CABLE LOAD</span>
+              <span className="text-slate-500 block uppercase text-[8px] font-bold">HOIST CABLE LOAD</span>
               <span className="text-white font-extrabold">{loadedUnderActiveCrane ? '⚖️ ' + loadedUnderActiveCrane.weight + ' LBS' : 'EMPTY'}</span>
             </div>
             <div>
-              <span className="text-slate-550 block uppercase text-[8px] font-bold">MOTOR STATS</span>
+              <span className="text-slate-500 block uppercase text-[8px] font-bold">MOTOR STATS</span>
               <span className="text-emerald-400 font-bold">⚡ NORMAL OPERATIONAL</span>
             </div>
           </div>
@@ -336,7 +336,7 @@ export default function CraneCabPage() {
                 </div>
 
                 {/* Drop Action Form */}
-                <div className="bg-slate-950/60 p-4 border border-slate-850 rounded-xl space-y-3">
+                <div className="bg-slate-950/60 p-4 border border-slate-800 rounded-xl space-y-3">
                   <span className="text-[10px] font-mono uppercase tracking-widest text-slate-500 block">Select Release Drop Target</span>
                   <div className="flex flex-col md:flex-row gap-2.5">
                     <select
@@ -408,7 +408,7 @@ export default function CraneCabPage() {
 
                     <button
                       onClick={() => handleDrop(loadedUnderActiveCrane.id)}
-                      className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-emerald-500 font-mono text-xs font-bold text-slate-950 px-5 py-2 hover:bg-emerald-450 cursor-pointer text-center whitespace-nowrap"
+                      className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-emerald-500 font-mono text-xs font-bold text-slate-950 px-5 py-2 hover:bg-emerald-400 cursor-pointer text-center whitespace-nowrap"
                     >
                       <ArrowDown className="h-4 w-4" />
                       <span>RELEASE PRESSURE CLAMP</span>
@@ -437,7 +437,7 @@ export default function CraneCabPage() {
               <h3 className="text-xs font-bold font-mono text-white mb-4">BUNDLES WAITING ON CRANE IN YARD</h3>
 
               {stagingQueues.length === 0 ? (
-                <p className="text-center py-12 font-mono text-xxs text-slate-650">No bundles staged for transport currently.</p>
+                <p className="text-center py-12 font-mono text-xxs text-slate-600">No bundles staged for transport currently.</p>
               ) : (
                 <div className="space-y-2 max-h-[380px] overflow-y-auto pr-1">
                   {stagingQueues.map((b) => (
@@ -452,7 +452,7 @@ export default function CraneCabPage() {
                             {b.tagId}
                           </span>
                           <span className={`text-[8px] uppercase font-mono px-1 rounded ${
-                            b.grade === 'Epoxy' ? 'bg-teal-500/10 text-teal-400 border border-teal-500/20' : 'bg-slate-900 text-slate-500 border border-slate-850'
+                            b.grade === 'Epoxy' ? 'bg-teal-500/10 text-teal-400 border border-teal-500/20' : 'bg-slate-900 text-slate-500 border border-slate-800'
                           }`}>
                             {b.grade}
                           </span>
@@ -463,7 +463,7 @@ export default function CraneCabPage() {
 
                       <button
                         onClick={() => handlePickUp(b.id)}
-                        className="bg-slate-900 hover:bg-slate-850 text-amber-500 border border-slate-800 px-3 py-1.5 text-xxs font-mono rounded-lg transition-colors cursor-pointer"
+                        className="bg-slate-900 hover:bg-slate-800 text-amber-500 border border-slate-800 px-3 py-1.5 text-xxs font-mono rounded-lg transition-colors cursor-pointer"
                       >
                         RIG / HOIST
                       </button>

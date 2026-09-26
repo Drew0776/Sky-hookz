@@ -243,7 +243,7 @@ export default function JobsPage() {
         <>
           {parts.map((part, i) => 
             regex.test(part) ? (
-              <mark key={i} className="bg-amber-500/25 text-amber-250 py-0.5 px-1 rounded font-bold border border-amber-500/40 no-underline shadow-xs">
+              <mark key={i} className="bg-amber-500/25 text-amber-200 py-0.5 px-1 rounded font-bold border border-amber-500/40 no-underline shadow-xs">
                 {part}
               </mark>
             ) : (
@@ -383,7 +383,7 @@ export default function JobsPage() {
             <select
               value={jobGradeFilter}
               onChange={(e) => setJobGradeFilter(e.target.value as any)}
-              className="bg-slate-900 border border-slate-800 text-slate-350 font-mono text-[10px] px-2.5 py-1.5 rounded-lg focus:border-amber-500 focus:outline-hidden cursor-pointer"
+              className="bg-slate-900 border border-slate-800 text-slate-300 font-mono text-[10px] px-2.5 py-1.5 rounded-lg focus:border-amber-500 focus:outline-hidden cursor-pointer"
             >
               <option value="ALL">All Grades</option>
               <option value="Epoxy">Epoxy Coating Only</option>
@@ -397,7 +397,7 @@ export default function JobsPage() {
             <select
               value={jobSortOption}
               onChange={(e) => setJobSortOption(e.target.value as any)}
-              className="bg-slate-900 border border-slate-800 text-slate-355 font-mono text-[10px] px-2.5 py-1.5 rounded-lg focus:border-amber-500 focus:outline-hidden cursor-pointer"
+              className="bg-slate-900 border border-slate-800 text-slate-300 font-mono text-[10px] px-2.5 py-1.5 rounded-lg focus:border-amber-500 focus:outline-hidden cursor-pointer"
             >
               <option value="DEFAULT">Default (Planned Index)</option>
               <option value="PROGRESS_DESC">Percent Complete (% High → Low)</option>
@@ -413,7 +413,7 @@ export default function JobsPage() {
             <select
               value={bundleSortOption}
               onChange={(e) => setBundleSortOption(e.target.value as any)}
-              className="bg-slate-900 border border-slate-800 text-slate-355 font-mono text-[10px] px-2.5 py-1.5 rounded-lg focus:border-amber-500 focus:outline-hidden cursor-pointer"
+              className="bg-slate-900 border border-slate-800 text-slate-300 font-mono text-[10px] px-2.5 py-1.5 rounded-lg focus:border-amber-500 focus:outline-hidden cursor-pointer"
             >
               <option value="TAG_ASC">Bundle Tag ID (A-Z)</option>
               <option value="WEIGHT_DESC">Weight (lbs Heavy → Light)</option>
@@ -441,7 +441,7 @@ export default function JobsPage() {
 
       {/* Exception Notices if any force overrides fail/succeed */}
       {overrideErr && (
-        <div className="bg-rose-500/10 border border-rose-500/20 text-rose-450 p-4 rounded-xl text-xs font-mono flex items-start gap-2 animate-fadeIn">
+        <div className="bg-rose-500/10 border border-rose-500/20 text-rose-400 p-4 rounded-xl text-xs font-mono flex items-start gap-2 animate-fadeIn">
           <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5 text-rose-500" />
           <div className="flex-1 font-mono">
             <strong>ADMIN ALARM:</strong> {overrideErr}
@@ -451,7 +451,7 @@ export default function JobsPage() {
       )}
 
       {overrideOk && (
-        <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-450 p-4 rounded-xl text-xs font-mono flex items-start gap-2 animate-fadeIn">
+        <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 p-4 rounded-xl text-xs font-mono flex items-start gap-2 animate-fadeIn">
           <CheckCircle className="h-4 w-4 shrink-0 mt-0.5 text-emerald-500" />
           <div className="flex-1 font-mono">
             <strong>OVERRIDE COMPLETE:</strong> {overrideOk}
@@ -546,7 +546,7 @@ export default function JobsPage() {
                     <div className="p-4 bg-slate-950/20 border-t border-slate-900 overflow-x-auto pr-1">
                       <table className="w-full text-left text-xxs font-mono tracking-wide text-slate-400 border-collapse">
                         <thead>
-                          <tr className="border-b border-slate-850 text-slate-550 uppercase tracking-widest text-[9px] font-mono font-bold">
+                          <tr className="border-b border-slate-800 text-slate-500 uppercase tracking-widest text-[9px] font-mono font-bold">
                             <th className="pb-2.5 pl-2.5">
                               <div className="flex items-center gap-2">
                                 <input 
@@ -602,7 +602,7 @@ export default function JobsPage() {
                                       <div>
                                         <span 
                                           onClick={() => setSelectedBundleForModal(b)}
-                                          className="font-bold text-slate-200 block cursor-pointer hover:underline hover:text-amber-450 transition-colors"
+                                          className="font-bold text-slate-200 block cursor-pointer hover:underline hover:text-amber-400 transition-colors"
                                           title="Click to audit comprehensive technical specifications and 3D bend geometry"
                                         >
                                           {highlightText(b.tagId, searchVal)}
@@ -624,7 +624,7 @@ export default function JobsPage() {
                                   <td className="py-3 max-w-[180px] break-all text-slate-500" title={b.route}>
                                     {b.route.split(' -> ').slice(-2).join(' → ')}
                                   </td>
-                                  <td className="py-3 font-bold text-slate-355">{highlightText(b.location, searchVal)}</td>
+                                  <td className="py-3 font-bold text-slate-300">{highlightText(b.location, searchVal)}</td>
                                   <td className="py-3 text-center">
                                     <span className={`inline-block px-2 py-0.5 rounded-full text-[9px] tracking-wider uppercase font-mono font-medium transition-all duration-200 ${getBundleStatusClass(b.status)}`}>
                                       {highlightText(b.status, searchVal)}
@@ -635,7 +635,7 @@ export default function JobsPage() {
                                     {/* Quick view specs button */}
                                     <button
                                       onClick={() => setSelectedBundleForModal(b)}
-                                      className="px-2 py-1 bg-slate-900 hover:bg-slate-800 border border-slate-850 hover:border-teal-500/30 rounded text-slate-300 hover:text-teal-400 cursor-pointer inline-flex items-center gap-1 font-sans text-[10px] font-bold transition-all"
+                                      className="px-2 py-1 bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-teal-500/30 rounded text-slate-300 hover:text-teal-400 cursor-pointer inline-flex items-center gap-1 font-sans text-[10px] font-bold transition-all"
                                       title="Quick view comprehensive 3D bending geometry and technical specs"
                                     >
                                       <Eye className="h-3 w-3 text-teal-400" />
@@ -645,7 +645,7 @@ export default function JobsPage() {
                                     {/* Log exception redirect button */}
                                     <button
                                       onClick={() => setLoc(`/exceptions?tagId=${b.tagId}`)}
-                                      className="p-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-850 hover:border-amber-500/30 rounded text-slate-400 hover:text-amber-500 cursor-pointer"
+                                      className="p-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-amber-500/30 rounded text-slate-400 hover:text-amber-500 cursor-pointer"
                                       title="Report fabrication exception tag"
                                     >
                                       <AlertTriangle className="h-3.5 w-3.5" />
@@ -660,7 +660,7 @@ export default function JobsPage() {
                                           setOverrideOk(null);
                                           setCncBypass(false);
                                         }}
-                                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-[10px] font-mono font-bold text-amber-500 hover:text-amber-400 border border-slate-850 hover:border-amber-500/20 rounded cursor-pointer transition-colors"
+                                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-[10px] font-mono font-bold text-amber-500 hover:text-amber-400 border border-slate-800 hover:border-amber-500/20 rounded cursor-pointer transition-colors"
                                       >
                                         <Truck className="h-3.5 w-3.5" />
                                         <span>FORCE LOAD</span>
