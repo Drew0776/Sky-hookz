@@ -35,6 +35,7 @@ import {
 } from './yardMapData';
 import { getRouteAnalysisByZones } from '../utils/yardMath';
 import { getZoneCapacity, gradeZoneViolation, movementBlockedReason, OVERLOAD_RATIO, slottingConflict, SLOW_MODE_RATIO } from '../yardRules';
+import { clickable } from '../utils/clickable';
 
 export default function YardMapPage() {
   const { currentRole, operators } = useApp();
@@ -2295,7 +2296,7 @@ export default function YardMapPage() {
                                       <div className="flex items-center gap-2">
                                         <RebarBundleIcon size={20} glow={b.grade === 'Epoxy'} className="shrink-0" />
                                         <span 
-                                          onClick={() => setSelectedBundleForModal(b)}
+                                          {...clickable(() => setSelectedBundleForModal(b))}
                                           className="cursor-pointer hover:underline hover:text-amber-400"
                                           title="Click to audit comprehensive technical specifications and 3D bend geometry"
                                         >

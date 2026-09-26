@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { Bundle, ActivityEvent, ShiftMessage } from '../types';
 import { INITIAL_BUNDLES, INITIAL_ACTIVITY, INITIAL_SHIFT_MESSAGES } from '../seedData';
+import { isFirstShift, plantLocalHour } from '../yardRules';
 import PageLoader from '../components/PageLoader';
 import { 
   Building2, 
@@ -24,7 +25,9 @@ export default function LandingPage() {
   
   // Shift Message state
   const [newMsgContent, setNewMsgContent] = useState('');
-  const [activeTab, setActiveTab] = useState<'First Shift' | 'Second Shift'>('First Shift');
+  // Open on the shift that's working now at this (St. Paul) terminal
+  const [activeTab, setActiveTab] = useState<'First Shift' | 'Second Shift'>(() =>
+    isFirstShift(plantLocalHour(new Date().toISOString(), 'St. Paul, MN')) ? 'First Shift' : 'Second Shift');
   const [isHandoffOpen, setIsHandoffOpen] = useState(false);
 
   const loadData = async () => {
@@ -372,7 +375,7 @@ function HandoffWizardModal({ onClose, onComplete, bundles }: HandoffWizardModal
           <span className="font-mono text-xs font-black text-white tracking-widest uppercase">
             Supervisor Handoff Desk (Step {step}/2)
           </span>
-          <button onClick={onClose} className="text-muted hover:text-white font-mono text-xs cursor-pointer select-none">✕</button>
+          <button onClick={onClose} aria-label="Close handoff wizard" className="text-muted hover:text-white font-mono text-xs cursor-pointer select-none">✕</button>
         </div>
 
         {step === 1 ? (
