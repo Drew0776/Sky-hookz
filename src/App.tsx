@@ -18,6 +18,7 @@ const CraneCabPage = lazy(() => import('./pages/CraneCabPage'));
 const YardMapPage = lazy(() => import('./pages/YardMapPage'));
 const JobsPage = lazy(() => import('./pages/JobsPage'));
 const ExceptionsPage = lazy(() => import('./pages/ExceptionsPage'));
+const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 
 export default function App() {
   return (
@@ -38,16 +39,7 @@ export default function App() {
               <Route path="/yard-map" component={YardMapPage} />
               <Route path="/jobs" component={JobsPage} />
               <Route path="/exceptions" component={ExceptionsPage} />
-              <Route>
-                <div className="flex flex-col items-center justify-center min-h-[50vh] text-center p-6">
-                  <span className="font-mono text-xs text-rose-500 font-bold uppercase tracking-widest bg-rose-500/10 px-2 py-1 rounded border border-rose-500/20 mb-3 animate-pulse">404 COORD ERROR</span>
-                  <h2 className="font-sans text-sm font-bold text-white uppercase tracking-wider">COORDINATE CELL LOST</h2>
-                  <p className="text-xs text-muted font-mono tracking-wide max-w-sm mt-1 mb-4">
-                    The requested route does not map to any active terminal or crane console.
-                  </p>
-                  <a href="/" className="font-mono text-xxs font-bold text-slate-950 bg-amber-500 hover:bg-amber-400 px-3.5 py-2 rounded-lg transition-colors">RETURN OVERVIEW</a>
-                </div>
-              </Route>
+              <Route component={NotFoundPage} />
             </Switch>
             </Suspense>
           </main>

@@ -353,6 +353,7 @@ export default function ExceptionsPage() {
                       type="text"
                       placeholder="e.g. 1-foot section #3"
                       value={damagedFootSection}
+                      maxLength={40}
                       onChange={(e) => setDamagedFootSection(e.target.value)}
                       className="w-full bg-slate-950 text-slate-200 border border-slate-800 rounded-lg p-2 text-xs font-mono focus:border-rose-500"
                     />
@@ -365,6 +366,7 @@ export default function ExceptionsPage() {
                 <label className="text-[10px] uppercase font-mono tracking-wider text-muted block">Descriptive Details</label>
                 <textarea
                   value={description}
+                  maxLength={1000}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Provide precise details (e.g. sheared short by 12 inches on North Bed)..."
                   className="w-full bg-slate-950 text-slate-200 border border-slate-800 rounded-lg p-2.5 text-xs font-mono focus:border-amber-500"

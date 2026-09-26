@@ -1170,13 +1170,13 @@ export default function FloorTriggerPage() {
                 return (
                   <div 
                     key={bundle.id} 
-                    className={`p-4 border rounded-xl flex items-center justify-between hover:border-slate-800 transition-all ${
+                    className={`p-4 border rounded-xl flex items-center justify-between gap-3 hover:border-slate-800 transition-all ${
                       highlighted 
                         ? 'bg-amber-500/5 border-amber-500 ring-1 ring-amber-500/20 shadow-md shadow-amber-500/5 animate-pulse' 
                         : 'bg-slate-900/40 border-slate-800 hover:border-slate-800'
                     }`}
                   >
-                    <div>
+                    <div className="min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span 
                           {...clickable(() => setSelectedBundleForModal(bundle))}

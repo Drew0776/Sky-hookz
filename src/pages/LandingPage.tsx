@@ -269,6 +269,7 @@ export default function LandingPage() {
             <form onSubmit={handlePostMessage} className="space-y-2">
               <textarea
                 value={newMsgContent}
+                maxLength={1000}
                 onChange={(e) => setNewMsgContent(e.target.value)}
                 placeholder={`Post a log note for ${activeTab}...`}
                 className="w-full text-xs font-mono bg-slate-950 text-slate-200 border border-slate-800 rounded-lg p-2 focus:ring-1 focus:ring-amber-500/50 focus:border-amber-500/50"
@@ -449,6 +450,7 @@ function HandoffWizardModal({ onClose, onComplete, bundles }: HandoffWizardModal
               <label className="text-[9px] font-mono text-slate-400 block uppercase font-bold text-left">Additional Supervisor Shift logs</label>
               <textarea
                 value={additionalNotes}
+                maxLength={600}
                 onChange={(e) => setAdditionalNotes(e.target.value)}
                 placeholder="Include details about any CNC machine maintenance, crane anomalies, or upcoming hot-rolled shipments..."
                 className="w-full text-xxs font-mono bg-slate-950 text-slate-200 border border-slate-800 rounded-lg p-2.5 focus:ring-1 focus:ring-amber-500/50 focus:border-amber-500/50"
