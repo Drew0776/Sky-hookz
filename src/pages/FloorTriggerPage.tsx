@@ -5,7 +5,6 @@ import { INITIAL_BUNDLES } from '../seedData';
 import PageLoader from '../components/PageLoader';
 import BundleDetailModal from '../components/BundleDetailModal';
 import { motion, AnimatePresence } from 'motion/react';
-import { jsPDF } from 'jspdf';
 import { 
   Wrench, 
   RotateCcw, 
@@ -326,8 +325,10 @@ export default function FloorTriggerPage() {
     }
   };
 
-  const handleExportPDF = () => {
+  const handleExportPDF = async () => {
     try {
+      // Load the PDF library only when a report is exported
+      const { jsPDF } = await import('jspdf');
       const doc = new jsPDF({
         orientation: 'p',
         unit: 'mm',

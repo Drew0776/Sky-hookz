@@ -1,11 +1,18 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
+import fs from 'fs';
 import path from 'path';
 import {defineConfig} from 'vite';
+
+const pkg = JSON.parse(fs.readFileSync(path.resolve(__dirname, 'package.json'), 'utf8'));
 
 export default defineConfig(() => {
   return {
     plugins: [react(), tailwindcss()],
+    define: {
+      // Shown in the footer so the console reports the version that is actually deployed
+      __APP_VERSION__: JSON.stringify(pkg.version),
+    },
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),
