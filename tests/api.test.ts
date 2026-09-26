@@ -146,3 +146,39 @@ test('mill certificates and dashboard metrics', async () => {
   assert.equal(typeof dash.json.uvHazardsCount, 'number');
   assert.equal(dash.json.loadedCount, 9);
 });
+
+test('request bodies must carry text where the screens expect text', async () => {
+  // One exception with an object for a name used to crash every open screen
+  const objectTag = await call('POST', '/api/exceptions', { tagId: {}, operatorName: 'QC', type: 'Misplaced Bar', description: 'x' });
+  assert.equal(objectTag.status, 400);
+  assert.match(objectTag.json.error, /tagId must be text/);
+
+  const numberName = await call('POST', '/api/shift-messages', { sender: 5, content: 'hi', shift: 'First Shift' });
+  assert.equal(numberName.status, 400);
+
+  const tooLong = await call('POST', '/api/exceptions', { tagId: 'TG-104', operatorName: 'QC', type: 'Misplaced Bar', description: 'x'.repeat(1001) });
+  assert.equal(tooLong.status, 400);
+  assert.match(tooLong.json.error, /1,000 characters/);
+
+  const notAnObject = await call('POST', '/api/bundles/bulk-action', [1, 2, 3]);
+  assert.equal(notAnObject.status, 400);
+
+  const oversized = await call('POST', '/api/shift-messages', { sender: 'x', content: 'x'.repeat(200_000), shift: 'First Shift' });
+  assert.equal(oversized.status, 413);
+
+  const blank = await call('POST', '/api/exceptions', { tagId: '   ', operatorName: 'QC', type: 'Misplaced Bar', description: 'x' });
+  assert.equal(blank.status, 400, 'a blank-but-spaces tag counts as missing');
+});
+
+test('a coated epoxy bundle cannot be set down in Raw-SW black-bar stock', async () => {
+  const r = await call('POST', '/api/bundles/TG-104/drop', { location: 'Raw-SW' });
+  assert.equal(r.status, 400);
+  assert.match(r.json.error, /never go back into Raw-SW/);
+});
+
+test('black bar cannot be staged where coated bar sits', async () => {
+  // Shear-North holds coated TG-104; TG-203 is raw black bar
+  const r = await call('POST', '/api/bundles/TG-203/stage', { location: 'Shear-North' });
+  assert.equal(r.status, 400);
+  assert.match(r.json.error, /never touch/);
+});

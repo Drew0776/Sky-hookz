@@ -7,17 +7,7 @@ import { INITIAL_BUNDLES, INITIAL_JOBS, INITIAL_OPERATORS, INITIAL_EXCEPTIONS, I
 import { zoneCoords } from './src/pages/yardMapData';
 import { getRouteAnalysisByZones } from './src/utils/yardMath';
 import {
-  MAX_ZONE_CAPACITY_LBS,
-  MIN_ZONE_CAPACITY_LBS,
-  SHIPPING_DOORS,
-  computeDashboardMetrics,
-  gradeZoneViolation,
-  isValidYardLocation,
-  movementBlockedReason,
-  slottingConflict,
-  slottingViolationMessage,
-  stagedAtAfterMove,
-  statusAfterDrop
+  computeDashboardMetrics, gradePlacementViolation, isValidYardLocation, MAX_ZONE_CAPACITY_LBS, MIN_ZONE_CAPACITY_LBS, movementBlockedReason, SHIPPING_DOORS, slottingConflict, slottingViolationMessage, stagedAtAfterMove, statusAfterDrop
 } from './src/yardRules';
 
 // Store state in-memory so modifications persist during runtime.
@@ -120,6 +110,61 @@ function findBundle(bundleId: string) {
 
 const app = express();
 app.use(express.json());
+
+// Every text and number field the API accepts, checked once here so no route can store an object,
+// an array or a novel where the screens expect short text (one bad record crashed every open screen),
+// and no garbage number can slip past a safety check (windSpeed: "high" used to skip the wind lockout).
+const TEXT_FIELDS: Record<string, number> = {
+  operatorName: 80, sender: 80, resolvedBy: 80,
+  tagId: 40, bundleId: 40, bundleTagId: 40,
+  type: 60, shift: 20, action: 40, trailerSize: 20, materialClass: 20,
+  location: 40, craneId: 40, benderId: 40, door: 40, originId: 40, destinationId: 40,
+  description: 1000, content: 1000
+};
+const NUMBER_FIELDS: Record<string, [number, number]> = { windSpeed: [0, 200], ropeSway: [0, 90], bundleLength: [0, 100] };
+const MAX_BULK_BUNDLES = 500;
+
+app.use('/api', (req, res, next) => {
+  if (req.method !== 'POST' && req.method !== 'PUT') return next();
+  const body = req.body;
+  if (typeof body !== 'object' || body === null || Array.isArray(body)) {
+    res.status(400).json({ error: 'The request body must be a JSON object.' });
+    return;
+  }
+  for (const [field, max] of Object.entries(TEXT_FIELDS)) {
+    const value = body[field];
+    if (value === undefined || value === null) continue;
+    if (typeof value !== 'string') {
+      res.status(400).json({ error: `${field} must be text.` });
+      return;
+    }
+    if (value.length > max) {
+      res.status(400).json({ error: `${field} is limited to ${max.toLocaleString()} characters.` });
+      return;
+    }
+    body[field] = value.trim(); // so a blank-but-spaces value counts as missing
+  }
+  for (const [field, [min, max]] of Object.entries(NUMBER_FIELDS)) {
+    const value = body[field];
+    if (value === undefined || value === null) continue;
+    if (typeof value !== 'number' || !Number.isFinite(value) || value < min || value > max) {
+      res.status(400).json({ error: `${field} must be a number from ${min} to ${max}.` });
+      return;
+    }
+  }
+  if (body.bundleIds !== undefined && (!Array.isArray(body.bundleIds) || body.bundleIds.length > MAX_BULK_BUNDLES ||
+      body.bundleIds.some((id: unknown) => typeof id !== 'string' || id.length > 40))) {
+    res.status(400).json({ error: `bundleIds must be a list of up to ${MAX_BULK_BUNDLES} bundle IDs.` });
+    return;
+  }
+  const audit = body.qualityAudit;
+  if (audit !== undefined && audit !== null && (typeof audit !== 'object' || Array.isArray(audit) ||
+      (audit.damagedFootSection != null && (typeof audit.damagedFootSection !== 'string' || audit.damagedFootSection.length > 40)))) {
+    res.status(400).json({ error: 'qualityAudit must be an object with a short damagedFootSection.' });
+    return;
+  }
+  next();
+});
 
 // PORT is hardcoded by platform infrastructure to 3000
 const PORT = 3000;
@@ -225,7 +270,7 @@ app.post('/api/gantry/execute-route', (req, res) => {
       res.status(400).json({ error: blocked });
       return;
     }
-    const zoneError = gradeZoneViolation(targetBundle.grade, destinationId);
+    const zoneError = gradePlacementViolation(targetBundle, destinationId, bundles);
     if (zoneError) {
       res.status(400).json({ error: zoneError });
       return;
@@ -446,7 +491,7 @@ app.post('/api/bundles/:bundleId/stage', (req, res) => {
     res.status(400).json({ error: blocked });
     return;
   }
-  const zoneError = gradeZoneViolation(bundle.grade, location);
+  const zoneError = gradePlacementViolation(bundle, location, bundles);
   if (zoneError) {
     res.status(400).json({ error: zoneError });
     return;
@@ -523,7 +568,7 @@ app.post('/api/bundles/:bundleId/drop', (req, res) => {
   }
 
   // Black bar stays SW; epoxy stays out of black-bar racks and SW shipping doors
-  const zoneError = gradeZoneViolation(bundle.grade, location);
+  const zoneError = gradePlacementViolation(bundle, location, bundles);
   if (zoneError) {
     res.status(400).json({ error: zoneError });
     return;
@@ -561,6 +606,12 @@ app.post('/api/bundles/:bundleId/send-to-bender', (req, res) => {
   const blocked = movementBlockedReason(bundle);
   if (blocked) {
     res.status(400).json({ error: blocked });
+    return;
+  }
+
+  const mixError = gradePlacementViolation(bundle, benderId, bundles);
+  if (mixError) {
+    res.status(400).json({ error: mixError });
     return;
   }
 
@@ -617,7 +668,7 @@ app.post('/api/bundles/:bundleId/force-load', (req, res) => {
   }
 
   // Material zone rules check
-  const zoneError = gradeZoneViolation(bundle.grade, door);
+  const zoneError = gradePlacementViolation(bundle, door, bundles);
   if (zoneError) {
     res.status(400).json({
       error: bundle.grade === 'Black'
@@ -672,6 +723,11 @@ app.post('/api/bundles/bulk-action', (req, res) => {
       }
       // Smart default door per grade: black ships SW, epoxy ships NW
       const door = bundle.grade === 'Black' ? 'Door-7' : 'Door-1';
+      const placeError = gradePlacementViolation(bundle, door, bundles);
+      if (placeError) {
+        errors.push(placeError);
+        continue;
+      }
       placeBundle(bundle, door, 'LOADED');
       bundle.trailerSize = 'Flatbed';
 
@@ -679,12 +735,22 @@ app.post('/api/bundles/bulk-action', (req, res) => {
       results.push(bundle);
     } else if (action === 'STAGE') {
       const location = bundle.grade === 'Black' ? 'Raw-SW' : 'Coat-Station';
+      const placeError = gradePlacementViolation(bundle, location, bundles);
+      if (placeError) {
+        errors.push(placeError);
+        continue;
+      }
       placeBundle(bundle, location, 'STAGED');
 
       logActivity(bundle.tagId, operatorName || 'Shear Operator', 'STAGED', oldLoc, bundle.location, `Bulk staged at ${bundle.location}`);
       results.push(bundle);
     } else if (action === 'SEND_TO_FABRICATION') {
       const benderId = bundle.grade === 'Black' ? 'Bender-11-Bender' : 'Bender-New-Robo';
+      const placeError = gradePlacementViolation(bundle, benderId, bundles);
+      if (placeError) {
+        errors.push(placeError);
+        continue;
+      }
       placeBundle(bundle, benderId, 'BENDING');
 
       logActivity(bundle.tagId, operatorName || 'Shear Operator', 'BENDING_START', oldLoc, bundle.location, `Bulk sent to fabrication at ${benderId}`);
@@ -715,6 +781,10 @@ app.use('/api', (req, res) => {
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
   if (err?.type === 'entity.parse.failed') {
     res.status(400).json({ error: 'Request body is not valid JSON.' });
+    return;
+  }
+  if (err?.type === 'entity.too.large') {
+    res.status(413).json({ error: 'The request body is too large (100 KB maximum).' });
     return;
   }
   console.error('Unhandled server error:', err);

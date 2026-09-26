@@ -20,7 +20,8 @@ This repository is the main build. [skyhooks](https://github.com/Drew0776/skyhoo
 
 All rules live in [`src/yardRules.ts`](src/yardRules.ts) and are shared by the server and the screens, so what an operator sees is what the server enforces.
 
-- **Grade zoning.** Black (uncoated, ASTM A615) bar stays in the SW zone: Stock SW, Doors 7–8, racks J-19 to J-25 and L-6 to L-10. Only the SW crane may lift it. Epoxy is kept out of those racks and ships from Doors 1–3 or North-End. Shears, benders and the coat line take either grade.
+- **Grade zoning.** Black (uncoated, ASTM A615) bar stays in the SW zone: Stock SW, Doors 7–8, racks J-19 to J-25 and L-6 to L-10. Only the SW crane may lift it. Black and epoxy are never mixed: all bar arrives black at Stock SW and most of it is coated, so epoxy-ordered bar waits there only until the coat line (status `RAW`). Once coated it never goes back into Stock SW, the SW racks or Doors 7–8, and it ships from Doors 1–3 or North-End. Shears, benders and the coat line take either grade.
+- **Black never touches coated.** A bundle can't be set down, staged, loaded, picked up or sent to a shear, bender or door where bar of the other surface already sits, at any stage.
 - **Ships-first stacking.** A bundle can't be set on a spot that holds a bundle shipping sooner.
 - **Gantry interlocks.** Routes run the runway, then the bridge ([`src/utils/yardMath.ts`](src/utils/yardMath.ts)). A parked crane on the path blocks the move. Each zone is rated at 75,000 lb unless a supervisor sets its own limit on the yard map. Crossing a zone at 60% forces slow mode, and 85% blocks the move. ASTM A934 prefab bundles skip slow mode.
 - **Hard stops.** A bundle that fails coating QC (more than 2% damage in a 1-ft section) is locked in `REJECTED` status and can't move.

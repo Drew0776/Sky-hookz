@@ -34,7 +34,7 @@ import {
   zoneQuadrants 
 } from './yardMapData';
 import { getRouteAnalysisByZones } from '../utils/yardMath';
-import { getZoneCapacity, gradeZoneViolation, movementBlockedReason, OVERLOAD_RATIO, slottingConflict, SLOW_MODE_RATIO } from '../yardRules';
+import { getZoneCapacity, gradePlacementViolation, movementBlockedReason, OVERLOAD_RATIO, slottingConflict, SLOW_MODE_RATIO } from '../yardRules';
 import { clickable } from '../utils/clickable';
 
 export default function YardMapPage() {
@@ -285,7 +285,7 @@ export default function YardMapPage() {
     const blocked = movementBlockedReason(routeBundle);
     if (blocked) routeRuleIssues.push(blocked);
     if (routeDestination.startsWith('Crane-')) routeRuleIssues.push('A gantry position is not a place to set a bundle down.');
-    const zoneError = gradeZoneViolation(routeBundle.grade, routeDestination);
+    const zoneError = gradePlacementViolation(routeBundle, routeDestination, bundles);
     if (zoneError) routeRuleIssues.push(zoneError);
     const conflict = slottingConflict(routeBundle, routeDestination, bundles);
     if (conflict) routeRuleIssues.push(`Bundle ${conflict.tagId} at ${routeDestination} ships sooner (${new Date(conflict.shippingDate).toLocaleDateString()}) and would be buried.`);
@@ -469,7 +469,7 @@ export default function YardMapPage() {
         <div>
           <h1 className="font-sans text-xl font-bold text-white tracking-tight flex items-center gap-2">
             <Compass className="h-5 w-5 text-amber-500" />
-            <span>Simcote saint Paul • plant layout Map</span>
+            <span>Simcote Saint Paul • Plant Layout Map</span>
           </h1>
           <p className="text-xxs text-slate-400 font-mono tracking-wider mt-0.5 uppercase">REAL-TIME POSITION FLAGGING • AUTO-POLLS 15s</p>
         </div>
@@ -672,7 +672,7 @@ export default function YardMapPage() {
             </div>
 
             {/* S4. Interactive SVG Blueprint Layout representing Saint Paul Plant Floor */}
-            <div className="relative overflow-x-auto overflow-y-hidden border border-slate-800/60 bg-slate-950/40 rounded-2xl p-3 md:p-4 mb-4" id="saint-paul-floorplan-blueprint-container">
+            <div className="relative overflow-x-auto overflow-y-hidden border border-slate-800/60 bg-slate-950/40 rounded-2xl p-3 md:p-4 mb-4" id="saint-paul-floorplan-blueprint-container" tabIndex={0} role="region" aria-label="Plant floor blueprint (scrolls sideways on small screens)">
               
               {/* Responsive Aspect Ratio Wrapper with Horizontal Scroll on Small Screen */}
               <div className="min-w-[850px] w-full" id="blueprint-svg-scroller">
@@ -2629,6 +2629,7 @@ export default function YardMapPage() {
                             <input 
                               type="text"
                               value={exFormDesc}
+                              maxLength={1000}
                               onChange={(e) => setExFormDesc(e.target.value)}
                               placeholder="e.g. Bundle J-12 has shifted on the northwest rack array, sagging past limit."
                               className="w-full bg-slate-900 border border-slate-800 rounded-lg p-2.5 text-xs text-slate-200 focus:outline-hidden focus:border-amber-500"

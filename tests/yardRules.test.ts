@@ -1,20 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import type { Bundle } from '../src/types';
-import {
-  computeDashboardMetrics,
-  daysOutdoors,
-  getZoneCapacity,
-  gradeZoneViolation,
-  isUvHazard,
-  isValidYardLocation,
-  movementBlockedReason,
-  plantLocalHour,
-  slottingConflict,
-  stagedAtAfterMove,
-  statusAfterDrop,
-  DEFAULT_ZONE_CAPACITY_LBS
-} from '../src/yardRules';
+import { computeDashboardMetrics, daysOutdoors, getZoneCapacity, gradeZoneViolation, isUvHazard, isValidYardLocation, movementBlockedReason, plantLocalHour, slottingConflict, stagedAtAfterMove, statusAfterDrop, DEFAULT_ZONE_CAPACITY_LBS, gradePlacementViolation } from '../src/yardRules';
 import { getRouteAnalysisByZones } from '../src/utils/yardMath';
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -127,4 +114,27 @@ test('route interlocks: parked cranes on the path are critical', () => {
   const r = getRouteAnalysisByZones('Raw-SW', 'Rack J-19', [], {});
   assert.ok(r.hasCriticalInterlock);
   assert.deepEqual(r.obstructions.map(o => o.zoneId), ['Crane-SW']);
+});
+
+test('coated epoxy never goes back into Raw-SW; uncoated bar waiting for the coat line may', () => {
+  assert.match(gradeZoneViolation('Epoxy', 'Raw-SW', 'COATED') ?? '', /never go back into Raw-SW/);
+  assert.match(gradeZoneViolation('Epoxy', 'Raw-SW') ?? '', /never go back into Raw-SW/, 'no status means treat it as coated');
+  assert.equal(gradeZoneViolation('Black', 'Raw-SW'), null);
+  assert.equal(gradeZoneViolation('Epoxy', 'Raw-SW', 'RAW'), null, 'epoxy-ordered bar is still black steel until coated');
+});
+
+test('black steel never touches coated steel, at any stage', () => {
+  const b = (id: string, grade: 'Black' | 'Epoxy', location: string, status = 'STAGED') => ({ id, tagId: id, grade, location, status });
+  const yard = [b('coated', 'Epoxy', 'Shear-North', 'STAGED'), b('black', 'Black', 'Shear-South', 'STAGED')];
+  assert.match(gradePlacementViolation(b('m', 'Black', 'Raw-SW'), 'Shear-North', yard) ?? '', /never touch/);
+  assert.match(gradePlacementViolation(b('m', 'Epoxy', 'Rack K-1', 'RACKED'), 'Shear-South', yard) ?? '', /never touch/);
+  assert.equal(gradePlacementViolation(b('m', 'Epoxy', 'Rack K-1', 'RACKED'), 'Shear-North', yard), null, 'coated on coated is fine');
+  assert.equal(gradePlacementViolation(b('m', 'Black', 'Raw-SW'), 'Shear-South', yard), null, 'black on black is fine');
+  // All bar arrives black: raw epoxy-ordered bar waiting at the coat line is still black...
+  const coatLine = [b('waiting', 'Epoxy', 'Coat-Station', 'STAGED')];
+  assert.equal(gradePlacementViolation(b('m', 'Epoxy', 'Raw-SW', 'RAW'), 'Coat-Station', coatLine), null);
+  assert.equal(gradePlacementViolation(b('m', 'Black', 'Raw-SW', 'RAW'), 'Coat-Station', coatLine), null);
+  // ...and bar leaving the coat line has been coated
+  assert.equal(gradePlacementViolation(b('m', 'Epoxy', 'Coat-Station', 'STAGED'), 'Shear-North', yard), null);
+  assert.match(gradePlacementViolation(b('m', 'Epoxy', 'Coat-Station', 'STAGED'), 'Shear-South', yard) ?? '', /never touch/);
 });

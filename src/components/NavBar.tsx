@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useLocation, Link } from 'wouter';
 import { useApp } from '../context/AppContext';
 import RoleSwitcher from './RoleSwitcher';
@@ -20,6 +20,12 @@ export default function NavBar() {
 
   // Filter based on user profile
   const visibleItems = navItems.filter(item => item.roles.includes(currentRole));
+
+  // Name the browser tab after the screen, so tabs, history and screen readers can tell screens apart
+  useEffect(() => {
+    const screen = navItems.find(item => item.href === location)?.label ?? 'Page not found';
+    document.title = `${screen} · SkyHook Yard Logistics`;
+  }, [location]);
 
   return (
     <nav className="border-b border-slate-800 bg-slate-950/80 backdrop-blur-md sticky top-0 z-40 px-4 py-3" id="main-navigation-bar">
