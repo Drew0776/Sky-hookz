@@ -128,7 +128,7 @@ export default function LandingPage() {
           </div>
           <div>
             <div className="text-xs font-mono font-bold text-white">{currentOperator?.name || 'Unassigned Operator'}</div>
-            <div className="text-[10px] font-mono uppercase text-slate-500 tracking-wider">
+            <div className="text-[10px] font-mono uppercase text-muted tracking-wider">
               {currentRole.replace('_', ' ')} • {currentOperator?.currentStation || 'Control Center'}
             </div>
           </div>
@@ -144,12 +144,12 @@ export default function LandingPage() {
           { label: 'SHIPPED/LOADED', count: loadedCount, color: 'text-emerald-400', desc: 'Trailers staged' },
         ].map((item, idx) => (
           <div key={idx} className="bg-slate-900/30 p-4 rounded-xl border border-slate-800/60 hover:border-slate-800 transition-all">
-            <div className="text-[10px] uppercase font-mono tracking-widest text-slate-500">{item.label}</div>
+            <div className="text-[10px] uppercase font-mono tracking-widest text-muted">{item.label}</div>
             <div className="flex items-baseline gap-2 mt-1">
               <span className={`text-2xl font-mono font-bold ${item.color}`}>{item.count}</span>
               <span className="text-xxs font-mono text-slate-400">bundles</span>
             </div>
-            <p className="text-xxs text-slate-500 font-mono mt-1">{item.desc}</p>
+            <p className="text-xxs text-muted font-mono mt-1">{item.desc}</p>
           </div>
         ))}
       </div>
@@ -166,7 +166,7 @@ export default function LandingPage() {
             </div>
             <button 
               onClick={loadData}
-              className="text-xxs font-mono text-slate-500 hover:text-amber-400 flex items-center gap-1 transition-colors cursor-pointer"
+              className="text-xxs font-mono text-muted hover:text-amber-400 flex items-center gap-1 transition-colors cursor-pointer"
             >
               <RefreshCw className="h-3 w-3" />
               <span>SYNC NOW</span>
@@ -175,7 +175,7 @@ export default function LandingPage() {
 
           <div className="bg-slate-950/40 rounded-xl border border-slate-800 overflow-hidden divide-y divide-slate-900/80 max-h-[460px] overflow-y-auto pr-1">
             {activities.length === 0 ? (
-              <p className="p-8 text-center font-mono text-xs text-slate-500">No recent physical events logged on the floor.</p>
+              <p className="p-8 text-center font-mono text-xs text-muted">No recent physical events logged on the floor.</p>
             ) : (
               activities.map((ev) => (
                 <div key={ev.id} className="p-3.5 hover:bg-slate-900/20 transition-colors flex items-start gap-3 text-xs">
@@ -187,7 +187,7 @@ export default function LandingPage() {
                       <span className="font-mono text-xs font-bold text-white hover:text-amber-400 cursor-pointer">
                         Bundle {ev.tagId}
                       </span>
-                      <span className="text-[10px] text-slate-500 font-mono flex items-center gap-1">
+                      <span className="text-[10px] text-muted font-mono flex items-center gap-1">
                         <Clock className="h-3 w-3" />
                         {new Date(ev.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                       </span>
@@ -196,11 +196,11 @@ export default function LandingPage() {
                       Moved from <span className="font-mono text-slate-300">{ev.fromLocation}</span> <ArrowRight className="h-2.5 w-2.5 inline mx-1" /> <span className="font-mono text-slate-300">{ev.toLocation}</span>
                     </p>
                     {ev.details && (
-                      <p className="text-slate-500 font-mono text-[10px] mt-1 bg-slate-900/40 px-2 py-1 rounded inline-block">
+                      <p className="text-muted font-mono text-[10px] mt-1 bg-slate-900/40 px-2 py-1 rounded inline-block">
                         {ev.details}
                       </p>
                     )}
-                    <p className="text-slate-600 font-mono text-[9px] mt-1 uppercase tracking-wide">
+                    <p className="text-muted font-mono text-[9px] mt-1 uppercase tracking-wide">
                       OPERATOR: {ev.operatorName}
                     </p>
                   </div>
@@ -221,7 +221,7 @@ export default function LandingPage() {
 
           {/* S5. Supervisor Shift Handoff Control Desk */}
           <div className="bg-slate-900/40 border border-slate-800 rounded-xl p-4 space-y-3" id="handoff-desk">
-            <span className="text-[10px] uppercase font-mono tracking-widest text-slate-500 font-bold block">
+            <span className="text-[10px] uppercase font-mono tracking-widest text-muted font-bold block">
               📋 Operational Handoff Desk
             </span>
             <p className="text-xxs font-sans text-slate-400 leading-normal">
@@ -285,13 +285,13 @@ export default function LandingPage() {
             {/* List of messages filtered by active tab */}
             <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
               {shiftMsgs.filter(m => m.shift === activeTab).length === 0 ? (
-                <p className="text-center font-mono text-[10px] text-slate-500 py-6">No reports logged for this shift.</p>
+                <p className="text-center font-mono text-[10px] text-muted py-6">No reports logged for this shift.</p>
               ) : (
                 shiftMsgs.filter(m => m.shift === activeTab).map((msg) => (
                   <div key={msg.id} className="bg-slate-950/60 p-3 rounded-lg border border-slate-900 flex flex-col gap-1">
                     <div className="flex items-center justify-between text-xxs font-mono">
                       <span className="font-bold text-slate-300">{msg.sender}</span>
-                      <span className="text-slate-500">
+                      <span className="text-muted">
                         {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </div>
@@ -372,12 +372,12 @@ function HandoffWizardModal({ onClose, onComplete, bundles }: HandoffWizardModal
           <span className="font-mono text-xs font-black text-white tracking-widest uppercase">
             Supervisor Handoff Desk (Step {step}/2)
           </span>
-          <button onClick={onClose} className="text-slate-500 hover:text-white font-mono text-xs cursor-pointer select-none">✕</button>
+          <button onClick={onClose} className="text-muted hover:text-white font-mono text-xs cursor-pointer select-none">✕</button>
         </div>
 
         {step === 1 ? (
           <div className="space-y-4">
-            <span className="text-[9px] font-mono text-slate-500 uppercase tracking-widest font-black block border-b border-slate-950 pb-1 text-slate-500">
+            <span className="text-[9px] font-mono text-muted uppercase tracking-widest font-black block border-b border-slate-950 pb-1 text-muted">
               Step 1: Shift Safety Checkpoint
             </span>
             <p className="text-xxs text-slate-400 font-sans leading-relaxed text-slate-400">
@@ -426,12 +426,12 @@ function HandoffWizardModal({ onClose, onComplete, bundles }: HandoffWizardModal
           </div>
         ) : (
           <div className="space-y-4">
-            <span className="text-[9px] font-mono text-slate-500 uppercase tracking-widest font-black block border-b border-slate-950 pb-1">
+            <span className="text-[9px] font-mono text-muted uppercase tracking-widest font-black block border-b border-slate-950 pb-1">
               Step 2: Operations Balance & Notes
             </span>
 
             <div className="space-y-2.5 p-3 bg-slate-950 rounded-xl border border-slate-800 text-xxs font-mono">
-              <span className="text-slate-500 text-[8px] uppercase font-black">Automatic Balance Count</span>
+              <span className="text-muted text-[8px] uppercase font-black">Automatic Balance Count</span>
               <div className="flex justify-between">
                 <span className="text-slate-400">Total rebar packs tracked:</span>
                 <span className="text-white font-bold">{totalCount}</span>

@@ -482,7 +482,7 @@ export default function YardMapPage() {
 
           {/* Quick Search Bar */}
           <div className="relative w-full sm:w-64 z-50" id="header-search-bar-wrapper">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted">
               <Search className="h-3.5 w-3.5" />
             </span>
             <input
@@ -506,7 +506,7 @@ export default function YardMapPage() {
                   setSelectedZone(null);
                   setShowDropdown(false);
                 }}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-slate-500 hover:text-white font-mono font-bold hover:bg-slate-900 h-5 w-5 rounded-full flex items-center justify-center transition-colors cursor-pointer"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-muted hover:text-white font-mono font-bold hover:bg-slate-900 h-5 w-5 rounded-full flex items-center justify-center transition-colors cursor-pointer"
                 title="Clear Search"
               >
                 ×
@@ -518,7 +518,7 @@ export default function YardMapPage() {
               <div className="absolute right-0 top-full mt-2 w-[280px] bg-slate-950 border border-slate-800 rounded-xl shadow-2xl divide-y divide-slate-900 max-h-[300px] overflow-y-auto">
                 {matchingBundles.length > 0 && (
                   <div className="py-2 px-3">
-                    <span className="text-[8px] font-mono text-slate-500 uppercase tracking-widest font-black block mb-1.5 header-dropdown-title">Matching Bundles</span>
+                    <span className="text-[8px] font-mono text-muted uppercase tracking-widest font-black block mb-1.5 header-dropdown-title">Matching Bundles</span>
                     <div className="space-y-1">
                       {matchingBundles.map(b => (
                         <button
@@ -534,7 +534,7 @@ export default function YardMapPage() {
                         >
                           <div>
                             <span className="font-bold text-slate-200 block">{b.tagId}</span>
-                            <span className="text-slate-500 text-[10px]">{b.mark} • {b.weight} lbs</span>
+                            <span className="text-muted text-[10px]">{b.mark} • {b.weight} lbs</span>
                           </div>
                           <div className="text-right">
                             <span className="px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 font-bold border border-amber-500/20 text-[8px] uppercase">{b.location}</span>
@@ -548,7 +548,7 @@ export default function YardMapPage() {
 
                 {matchingJobs.length > 0 && (
                   <div className="py-2 px-3">
-                    <span className="text-[8px] font-mono text-slate-500 uppercase tracking-widest font-black block mb-1.5 header-dropdown-title">Matching Jobs</span>
+                    <span className="text-[8px] font-mono text-muted uppercase tracking-widest font-black block mb-1.5 header-dropdown-title">Matching Jobs</span>
                     <div className="space-y-1">
                       {matchingJobs.map(jobId => {
                         const jobBundles = bundles.filter(b => b.jobId === jobId);
@@ -570,7 +570,7 @@ export default function YardMapPage() {
                           >
                             <div>
                               <span className="font-bold text-amber-500 block">{jobId}</span>
-                              <span className="text-slate-500 text-[10px]">{jobBundles.length} bundles • {weight.toLocaleString()} lbs</span>
+                              <span className="text-muted text-[10px]">{jobBundles.length} bundles • {weight.toLocaleString()} lbs</span>
                             </div>
                             <span className="px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-400 font-bold text-[8px] uppercase shrink-0">
                               {uniqueLocations.slice(0, 2).join(', ')}{uniqueLocations.length > 2 ? '...' : ''}
@@ -603,8 +603,8 @@ export default function YardMapPage() {
         <div className="lg:col-span-3 space-y-4">
           <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-5" id="saint-paul-floorplan">
             <div className="flex items-center justify-between mb-4 border-b border-slate-900 pb-2">
-              <span className="text-[10px] uppercase font-mono tracking-widest text-slate-500">Facility Floor Blueprint overview</span>
-              <span className="text-xxs font-mono text-slate-500 italic block">St Paul, MN Yard</span>
+              <span className="text-[10px] uppercase font-mono tracking-widest text-muted">Facility Floor Blueprint overview</span>
+              <span className="text-xxs font-mono text-muted italic block">St Paul, MN Yard</span>
             </div>
 
             {/* Live Contextual Detail Panel */}
@@ -618,7 +618,7 @@ export default function YardMapPage() {
                       }`}>
                         {hoveredZone ? 'HOVERING' : 'SELECTED'}
                       </span>
-                      <h4 className="font-mono font-bold text-white uppercase text-xs tracking-wide">{activeFocusZoneData.id}</h4>
+                      <h2 className="font-mono font-bold text-white uppercase text-xs tracking-wide">{activeFocusZoneData.id}</h2>
                       <span className="text-[10px] text-slate-400 font-mono italic">• {activeFocusZoneData.desc}</span>
                       {activeFocusZoneBundles.some(b => {
                         const statusUpper = (b.status || '').toUpperCase();
@@ -644,7 +644,7 @@ export default function YardMapPage() {
                         >
                           <span className="text-slate-300 font-bold">{b.tagId}</span>
                           <span className={`text-[8px] px-1 rounded uppercase tracking-wider font-bold ${
-                            b.grade === 'Epoxy' ? 'bg-teal-500/10 text-teal-400 border border-teal-500/15' : 'bg-slate-950 text-slate-500 border border-slate-900'
+                            b.grade === 'Epoxy' ? 'bg-teal-500/10 text-teal-400 border border-teal-500/15' : 'bg-slate-950 text-muted border border-slate-900'
                           }`}>
                             {b.grade}
                           </span>
@@ -652,13 +652,13 @@ export default function YardMapPage() {
                       ))}
                     </div>
                   ) : (
-                    <span className="text-[9px] font-mono text-slate-500 italic uppercase tracking-widest self-start md:self-center">
+                    <span className="text-[9px] font-mono text-muted italic uppercase tracking-widest self-start md:self-center">
                       No Active Bundle Inventory In Coords
                     </span>
                   )}
                 </div>
               ) : (
-                <div className="flex items-center gap-2.5 text-slate-500 py-1">
+                <div className="flex items-center gap-2.5 text-muted py-1">
                   <span className="relative flex h-2 w-2 shrink-0">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-500 opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
@@ -1163,15 +1163,15 @@ export default function YardMapPage() {
                     <BarChart2 className="h-4 w-4 text-indigo-500" />
                     REAL-TIME PLANT SECTOR LOGISTICS
                   </span>
-                  <h3 className="text-xs font-mono font-bold text-white uppercase tracking-wider">
+                  <h2 className="text-xs font-mono font-bold text-white uppercase tracking-wider">
                     QUADRANT LOAD BURDEN DISTRIBUTION
-                  </h3>
+                  </h2>
                   <p className="text-[10px] text-slate-400 leading-relaxed max-w-xl">
                     Aggregates rebar load weights (LBS) across Northwest, Northeast, Southwest, and Southeast plant-yard sectors in real-time.
                   </p>
                 </div>
                 <div className="text-right shrink-0">
-                  <span className="text-[10px] uppercase font-mono tracking-wider text-slate-500 font-extrabold block">Total Active Inventory</span>
+                  <span className="text-[10px] uppercase font-mono tracking-wider text-muted font-extrabold block">Total Active Inventory</span>
                   <span className="text-xs font-black text-slate-200 block font-mono">
                     {bundles.reduce((sum, b) => sum + (b.weight || 0), 0).toLocaleString()} <span className="text-[8px] font-normal text-indigo-400">LBS</span>
                   </span>
@@ -1186,7 +1186,7 @@ export default function YardMapPage() {
                     <span className="text-[8.5px] uppercase tracking-wider text-slate-400 font-extrabold font-mono">
                       Sector Burden Bar Graph
                     </span>
-                    <span className="text-[8px] text-slate-500 uppercase font-mono">
+                    <span className="text-[8px] text-muted uppercase font-mono">
                       *Interactive columns - hover for detail
                     </span>
                   </div>
@@ -1377,7 +1377,7 @@ export default function YardMapPage() {
                               </span>
                             )}
                           </div>
-                          <span className="text-[7.5px] text-slate-500 block uppercase font-bold tracking-wider leading-none">
+                          <span className="text-[7.5px] text-muted block uppercase font-bold tracking-wider leading-none">
                             {q.activity}
                           </span>
                         </div>
@@ -1385,17 +1385,17 @@ export default function YardMapPage() {
                         {/* Middle Info Stats row */}
                         <div className="my-3 flex justify-between items-end">
                           <div>
-                            <span className="text-[8px] text-slate-500 uppercase leading-none block font-bold mb-0.5">LOAD WEIGHT</span>
+                            <span className="text-[8px] text-muted uppercase leading-none block font-bold mb-0.5">LOAD WEIGHT</span>
                             <span className="text-sm font-black text-slate-100 block">
                               {stats.weight.toLocaleString()} <span className="text-[9px] font-normal text-indigo-400 font-bold">LBS</span>
                             </span>
                           </div>
                           <div className="text-right">
-                            <span className="text-[8px] text-slate-500 uppercase leading-none block font-bold mb-0.5 font-bold">UTILITY RATIO</span>
+                            <span className="text-[8px] text-muted uppercase leading-none block font-bold mb-0.5 font-bold">UTILITY RATIO</span>
                             <span className={`text-xxs font-black block ${
                               isHighBurden ? 'text-rose-400 animate-pulse' : 'text-slate-300'
                             }`}>
-                              {usagePercent.toFixed(1)}% <span className="text-[7px] font-normal text-slate-500">CAP</span>
+                              {usagePercent.toFixed(1)}% <span className="text-[7px] font-normal text-muted">CAP</span>
                             </span>
                           </div>
                         </div>
@@ -1436,9 +1436,9 @@ export default function YardMapPage() {
                     <Compass className="h-4 w-4 animate-spin-slow text-amber-500" />
                     Overhead Gantry Crane Route Planner
                   </span>
-                  <h3 className="text-xs font-mono font-bold text-white uppercase tracking-wider">
+                  <h2 className="text-xs font-mono font-bold text-white uppercase tracking-wider">
                     Gantry Travel Route Selector & Collision Guard
-                  </h3>
+                  </h2>
                   <p className="text-[10px] text-slate-400 leading-relaxed max-w-xl">
                     Statically evaluates runway longitudinal tracks & lateral trolley bridge travel sequences, identifying physical corridor conflicts and Cleanroom compliance errors.
                   </p>
@@ -1463,7 +1463,7 @@ export default function YardMapPage() {
                   >
                     {isRoutingActive ? '🛑 Active Map Selector' : '🎯 Activate Map Selector'}
                   </button>
-                  <p className="text-[8px] font-mono text-slate-500 uppercase tracking-tight text-center sm:text-right">
+                  <p className="text-[8px] font-mono text-muted uppercase tracking-tight text-center sm:text-right">
                     {isRoutingActive ? 'Click any blueprint sector to load start/term nodes' : 'Select terminals manually or activate click selector'}
                   </p>
                 </div>
@@ -1473,7 +1473,7 @@ export default function YardMapPage() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
                 <div>
                   <label className="text-[9px] font-mono uppercase tracking-widest text-slate-400 block mb-1.5 font-extrabold">Origin Station Start Node</label>
-                  <select
+                  <select aria-label="Origin Station Start Node"
                     value={routeOrigin || ''}
                     onChange={(e) => setRouteOrigin(e.target.value || null)}
                     className="w-full bg-slate-950 border border-slate-800 p-2.5 rounded-lg text-xxs font-mono text-slate-300 focus:border-amber-500 focus:outline-hidden cursor-pointer h-10 align-middle"
@@ -1489,7 +1489,7 @@ export default function YardMapPage() {
 
                 <div>
                   <label className="text-[9px] font-mono uppercase tracking-widest text-slate-400 block mb-1.5 font-extrabold">Destination Term Terminal Node</label>
-                  <select
+                  <select aria-label="Destination Term Terminal Node"
                     value={routeDestination || ''}
                     onChange={(e) => setRouteDestination(e.target.value || null)}
                     className="w-full bg-slate-950 border border-slate-800 p-2.5 rounded-lg text-xxs font-mono text-slate-300 focus:border-amber-500 focus:outline-hidden cursor-pointer h-10 align-middle"
@@ -1537,39 +1537,39 @@ export default function YardMapPage() {
                   <div className="space-y-4 animate-fadeIn">
                     <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 bg-slate-950 p-4 border border-indigo-950/40 rounded-xl font-mono text-center">
                       <div className="space-y-0.5 border-r border-slate-900">
-                        <span className="text-[8px] uppercase text-slate-500 block font-bold leading-none">Runway Travel (Horiz)</span>
+                        <span className="text-[8px] uppercase text-muted block font-bold leading-none">Runway Travel (Horiz)</span>
                         <span className="text-slate-200 text-xs font-black block mt-1">
-                          {routeAnalysis.dX.toFixed(0)} <span className="text-[8px] font-normal text-slate-500">FT</span>
+                          {routeAnalysis.dX.toFixed(0)} <span className="text-[8px] font-normal text-muted">FT</span>
                         </span>
-                        <span className="text-[7.5px] text-slate-600 block italic leading-none">Index Rate: 150 FPM</span>
+                        <span className="text-[7.5px] text-muted block italic leading-none">Index Rate: 150 FPM</span>
                       </div>
                       <div className="space-y-0.5 border-r border-slate-900">
-                        <span className="text-[8px] uppercase text-slate-500 block font-bold leading-none">Bridge Travel (Vert)</span>
+                        <span className="text-[8px] uppercase text-muted block font-bold leading-none">Bridge Travel (Vert)</span>
                         <span className="text-slate-200 text-xs font-black block mt-1">
-                          {routeAnalysis.dY.toFixed(0)} <span className="text-[8px] font-normal text-slate-500">FT</span>
+                          {routeAnalysis.dY.toFixed(0)} <span className="text-[8px] font-normal text-muted">FT</span>
                         </span>
-                        <span className="text-[7.5px] text-slate-600 block italic leading-none">Index Rate: 90 FPM</span>
+                        <span className="text-[7.5px] text-muted block italic leading-none">Index Rate: 90 FPM</span>
                       </div>
                       <div className="space-y-0.5 border-r border-slate-900">
-                        <span className="text-[8px] uppercase text-slate-500 block font-bold leading-none">Combined Travel Span</span>
+                        <span className="text-[8px] uppercase text-muted block font-bold leading-none">Combined Travel Span</span>
                         <span className="text-slate-400 text-xs font-black block mt-1">
                           {totalSpan.toFixed(0)} <span className="text-[8px] font-normal text-indigo-400">FT</span>
                         </span>
-                        <span className="text-[7.5px] text-slate-600 block leading-none">Coordinate Distance Sum</span>
+                        <span className="text-[7.5px] text-muted block leading-none">Coordinate Distance Sum</span>
                       </div>
                       <div className="space-y-0.5 border-r border-slate-900">
-                        <span className="text-[8px] uppercase text-slate-500 block font-bold leading-none">Ideal Time</span>
+                        <span className="text-[8px] uppercase text-muted block font-bold leading-none">Ideal Time</span>
                         <span className="text-teal-400 text-xs font-black block mt-1">
-                          {routeAnalysis.idealTime.toFixed(1)} <span className="text-[8px] font-normal text-slate-500">SEC</span>
+                          {routeAnalysis.idealTime.toFixed(1)} <span className="text-[8px] font-normal text-muted">SEC</span>
                         </span>
-                        <span className="text-[7.5px] text-slate-600 block leading-none">Zero-Density Airways</span>
+                        <span className="text-[7.5px] text-muted block leading-none">Zero-Density Airways</span>
                       </div>
                       <div className="space-y-0.5">
                         <span className="text-[8px] uppercase text-amber-500 block font-black leading-none">Predictive Slew Time</span>
                         <span className="text-amber-400 text-xs font-black block mt-1 animate-pulse">
                           {routeAnalysis.predictedTime.toFixed(1)} <span className="text-[8px] font-normal text-amber-500">SEC</span>
                         </span>
-                        <span className="text-[7.5px] text-slate-600 block leading-none">Dynamic Pile Burden</span>
+                        <span className="text-[7.5px] text-muted block leading-none">Dynamic Pile Burden</span>
                       </div>
                     </div>
 
@@ -1580,7 +1580,7 @@ export default function YardMapPage() {
                           <Compass className="h-4 w-4 text-indigo-500" />
                           ROUTE TRANSIT TIME ESTIMATES
                         </span>
-                        <span className="text-[8px] text-slate-500 uppercase">
+                        <span className="text-[8px] text-muted uppercase">
                           Gantry Speeds: <span className="text-slate-300">Runway 150 FPM · Bridge 90 FPM</span>
                         </span>
                       </div>
@@ -1626,13 +1626,13 @@ export default function YardMapPage() {
                               <span className="text-[8.5px] tracking-wider text-slate-400 font-extrabold uppercase">
                                 Traversed Runway Corridor Sectors ({routeAnalysis.crossedZonesCount})
                               </span>
-                              <span className="text-[8px] text-slate-500 uppercase">
+                              <span className="text-[8px] text-muted uppercase">
                                 Active Burden Factor
                               </span>
                             </div>
 
                             {routeAnalysis.crossedZonesSummary.length === 0 ? (
-                              <div className="p-5 border border-dashed border-slate-900 bg-slate-950/40 text-center rounded-xl text-slate-500 text-xxs">
+                              <div className="p-5 border border-dashed border-slate-900 bg-slate-950/40 text-center rounded-xl text-muted text-xxs">
                                 🌬️ Traversed runway airspace completely clear. Safe rapid corridor flight.
                               </div>
                             ) : (
@@ -1642,7 +1642,7 @@ export default function YardMapPage() {
                                     <div className="flex justify-between items-center mb-1">
                                       <div className="flex items-center gap-1.5">
                                         <span className="font-extrabold text-slate-300">{zone.name}</span>
-                                        <span className="text-[8px] text-slate-500">({zone.id})</span>
+                                        <span className="text-[8px] text-muted">({zone.id})</span>
                                       </div>
                                       <span className={`text-[9.5px] font-black ${
                                         zone.ratio >= OVERLOAD_RATIO ? 'text-rose-400' : zone.ratio >= SLOW_MODE_RATIO ? 'text-amber-400' : 'text-teal-400'
@@ -1834,7 +1834,7 @@ export default function YardMapPage() {
                   </div>
                 );
               })() : (
-                <div className="p-8 text-center text-slate-500 border border-dashed border-slate-900 rounded-xl bg-slate-950/10 font-mono">
+                <div className="p-8 text-center text-muted border border-dashed border-slate-900 rounded-xl bg-slate-950/10 font-mono">
                   <HardHat className="h-10 w-10 text-slate-700 mx-auto mb-3.5" />
                   <span className="text-[10px] uppercase tracking-widest font-black text-slate-400 block mb-1">corridor simulation idle</span>
                   <p className="text-[10px] leading-relaxed max-w-md mx-auto font-sans">
@@ -1847,7 +1847,7 @@ export default function YardMapPage() {
             {/* Plant Layout Color-Coding Legend */}
             <div className="mt-6 pt-5 border-t border-slate-900/60" id="map-legend-section">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
-                <span className="text-[10px] uppercase font-mono tracking-widest text-slate-500 font-bold">
+                <span className="text-[10px] uppercase font-mono tracking-widest text-muted font-bold">
                   {isHeatmapMode ? "Heat Map Weight Satiation Scale" : "Facility Area Color-Coding Legend"}
                 </span>
                 <div className="flex flex-wrap gap-x-4 gap-y-1 items-center">
@@ -1865,11 +1865,11 @@ export default function YardMapPage() {
               {/* Preset Layout Controls */}
               <div className="mb-4 bg-slate-950/50 p-4 border border-slate-900 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="space-y-0.5">
-                  <span className="text-[8px] uppercase font-mono tracking-widest text-slate-500 font-bold block">Quick Presets</span>
-                  <h4 className="text-[10px] font-mono font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+                  <span className="text-[8px] uppercase font-mono tracking-widest text-muted font-bold block">Quick Presets</span>
+                  <h3 className="text-[10px] font-mono font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
                     <Compass className="h-3.5 w-3.5 text-amber-500 animate-spin-slow" />
                     PRESET LAYOUT CONTROLS
-                  </h4>
+                  </h3>
                   <p className="text-[9px] font-sans text-slate-400 mt-0.5">
                     Toggle optimized yard overlays and filtering configurations in one tap.
                   </p>
@@ -1930,7 +1930,7 @@ export default function YardMapPage() {
                     <Layers className="h-3.5 w-3.5 text-amber-500" />
                     Interactive Blueprint Filtering
                   </span>
-                  <p className="text-[9px] font-mono text-slate-500 leading-normal max-w-sm">
+                  <p className="text-[9px] font-mono text-muted leading-normal max-w-sm">
                     Isolate counts and highlighted zones by material properties, production stages, or bundle identification characteristics.
                   </p>
                 </div>
@@ -1939,7 +1939,7 @@ export default function YardMapPage() {
                   
                   {/* View Mode Toggle */}
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[9px] font-mono text-slate-500 uppercase">View:</span>
+                    <span className="text-[9px] font-mono text-muted uppercase">View:</span>
                     <div className="flex items-center bg-slate-900 border border-slate-800 rounded-md p-0.5" id="view-mode-toggle">
                       <button
                         type="button"
@@ -1984,7 +1984,7 @@ export default function YardMapPage() {
                           setSearchQuery('');
                           setHeaderSearchVal('');
                         }}
-                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-slate-500 hover:text-slate-300 font-mono font-bold"
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-muted hover:text-slate-300 font-mono font-bold"
                       >
                         ×
                       </button>
@@ -1993,8 +1993,8 @@ export default function YardMapPage() {
 
                   {/* Grade Selector */}
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[9px] font-mono text-slate-500 uppercase">Grade:</span>
-                    <select
+                    <span className="text-[9px] font-mono text-muted uppercase">Grade:</span>
+                    <select aria-label="Grade"
                       value={gradeFilter}
                       onChange={(e) => setGradeFilter(e.target.value)}
                       className="bg-slate-900 border border-slate-800 text-slate-300 font-mono text-[10px] px-2.5 py-1.5 rounded-md focus:border-amber-500 focus:outline-hidden cursor-pointer"
@@ -2007,8 +2007,8 @@ export default function YardMapPage() {
 
                   {/* Status Selector */}
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[9px] font-mono text-slate-500 uppercase">Status:</span>
-                    <select
+                    <span className="text-[9px] font-mono text-muted uppercase">Status:</span>
+                    <select aria-label="Status"
                       value={statusFilter}
                       onChange={(e) => setStatusFilter(e.target.value)}
                       className="bg-slate-900 border border-slate-800 text-slate-300 font-mono text-[10px] px-2.5 py-1.5 rounded-md focus:border-amber-500 focus:outline-hidden cursor-pointer"
@@ -2055,21 +2055,21 @@ export default function YardMapPage() {
             <div>
               <div className="flex items-center gap-1.5 border-b border-slate-900 pb-3 mb-4">
                 <Info className="h-4 w-4 text-slate-400" />
-                <h3 className="font-sans text-xs font-bold text-white uppercase tracking-widest">Zone Telemetry</h3>
+                <h2 className="font-sans text-xs font-bold text-white uppercase tracking-widest">Zone Telemetry</h2>
               </div>
 
               {activeZoneData ? (
                 <div className="space-y-4 flex-1">
                   <div>
-                    <span className="text-xxs uppercase font-mono tracking-widest text-slate-500">Selected Station Coordinate</span>
-                    <h4 className="text-sm font-bold text-white uppercase font-mono mt-0.5">{activeZoneData.id}</h4>
+                    <span className="text-xxs uppercase font-mono tracking-widest text-muted">Selected Station Coordinate</span>
+                    <h3 className="text-sm font-bold text-white uppercase font-mono mt-0.5">{activeZoneData.id}</h3>
                     <span className="text-xxs font-mono text-slate-400 block mt-1">{activeZoneData.desc}</span>
                   </div>
 
                   <div className="pt-3 border-t border-slate-900">
-                    <span className="text-xxs uppercase font-mono tracking-widest text-slate-500 block mb-2">residing packages ({activeZoneBundles.length})</span>
+                    <span className="text-xxs uppercase font-mono tracking-widest text-muted block mb-2">residing packages ({activeZoneBundles.length})</span>
                     {activeZoneBundles.length === 0 ? (
-                      <p className="text-xxs font-mono text-slate-500 py-6 text-center">No bundles recorded at this location coordinate currently.</p>
+                      <p className="text-xxs font-mono text-muted py-6 text-center">No bundles recorded at this location coordinate currently.</p>
                     ) : (
                       <div className="space-y-1 max-h-[220px] overflow-y-auto pr-1">
                         {activeZoneBundles.map((b) => (
@@ -2078,11 +2078,11 @@ export default function YardMapPage() {
                               <RebarBundleIcon size={22} glow={b.grade === 'Epoxy'} className="shrink-0" />
                               <div className="font-mono">
                                 <span className="font-bold text-slate-300 block">{b.tagId}</span>
-                                <span className="text-slate-500">{b.mark} • {b.weight} lbs</span>
+                                <span className="text-muted">{b.mark} • {b.weight} lbs</span>
                               </div>
                             </div>
                             <span className={`text-[8px] font-mono px-1 rounded uppercase ${
-                              b.grade === 'Epoxy' ? 'bg-teal-500/10 text-teal-400 border border-teal-500/20' : 'bg-slate-900 text-slate-500'
+                              b.grade === 'Epoxy' ? 'bg-teal-500/10 text-teal-400 border border-teal-500/20' : 'bg-slate-900 text-muted'
                             }`}>
                               {b.grade}
                             </span>
@@ -2095,7 +2095,7 @@ export default function YardMapPage() {
               ) : (
                 <div className="text-center py-20">
                   <HelpCircle className="h-8 w-8 text-slate-700 mx-auto stroke-[1.5]" />
-                  <p className="text-[10px] font-mono text-slate-500 mt-3 max-w-[180px] mx-auto leading-relaxed uppercase">
+                  <p className="text-[10px] font-mono text-muted mt-3 max-w-[180px] mx-auto leading-relaxed uppercase">
                     Click any coordinate cell on the plant floor Map to monitor zone inventories.
                   </p>
                 </div>
@@ -2103,7 +2103,7 @@ export default function YardMapPage() {
             </div>
 
             {activeZoneData && (
-              <p className="text-[9px] font-mono text-slate-600 mt-4 leading-normal">
+              <p className="text-[9px] font-mono text-muted mt-4 leading-normal">
                 SYSTEM ID: {activeZoneData.id}<br />
                 COORDINATE CLASS: {activeZoneData.type.toUpperCase()}<br />
                 UPDATED UTC: {new Date().toLocaleTimeString()}
@@ -2134,7 +2134,7 @@ export default function YardMapPage() {
                   <span className="p-1 px-2 rounded-xs border border-orange-500/35 bg-orange-500/10 text-orange-400 text-[10px] uppercase font-bold tracking-widest animate-pulse">
                     LIVE COORDINATE ZONE CONTROL
                   </span>
-                  <span className="text-[10px] text-slate-500 uppercase tracking-widest leading-none">SYSTEM ID: {modalZone.id}</span>
+                  <span className="text-[10px] text-muted uppercase tracking-widest leading-none">SYSTEM ID: {modalZone.id}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <h2 className="text-xl font-sans font-black text-white uppercase tracking-tight">{modalZone.desc || modalZone.label}</h2>
@@ -2157,8 +2157,8 @@ export default function YardMapPage() {
               <div className="lg:col-span-3 border-r border-slate-900/80 bg-slate-950/40 p-4 flex flex-col justify-between overflow-y-auto">
                 <div className="space-y-6">
                   <div className="space-y-1">
-                    <span className="text-[10px] uppercase text-slate-500 font-bold tracking-wider">NAVIGATE VIEWS</span>
-                    <p className="text-[9px] text-slate-500 leading-normal">Operational telemetry projection selectors.</p>
+                    <span className="text-[10px] uppercase text-muted font-bold tracking-wider">NAVIGATE VIEWS</span>
+                    <p className="text-[9px] text-muted leading-normal">Operational telemetry projection selectors.</p>
                   </div>
                   
                   <div className="flex flex-col gap-2">
@@ -2172,7 +2172,7 @@ export default function YardMapPage() {
                     >
                       <span>📦 Active Bundle Inventory</span>
                       <span className={`px-1.5 py-0.2 rounded text-[9px] ${
-                        modalActiveTab === 'inventory' ? 'bg-amber-500/20 text-amber-300 font-black' : 'bg-slate-950 text-slate-500 font-bold'
+                        modalActiveTab === 'inventory' ? 'bg-amber-500/20 text-amber-300 font-black' : 'bg-slate-950 text-muted font-bold'
                       }`}>{modalZoneBundles.length}</span>
                     </button>
 
@@ -2186,7 +2186,7 @@ export default function YardMapPage() {
                     >
                       <span>📜 Recent Activity Logs</span>
                       <span className={`px-1.5 py-0.2 rounded text-[9px] ${
-                        modalActiveTab === 'activities' ? 'bg-amber-500/20 text-amber-300 font-black' : 'bg-slate-950 text-slate-500 font-bold'
+                        modalActiveTab === 'activities' ? 'bg-amber-500/20 text-amber-300 font-black' : 'bg-slate-950 text-muted font-bold'
                       }`}>{zoneEvents.length}</span>
                     </button>
 
@@ -2199,14 +2199,14 @@ export default function YardMapPage() {
                       }`}
                     >
                       <span>🛠️ Zone Configuration Tools</span>
-                      <Settings className={`h-3.5 w-3.5 ${modalActiveTab === 'configuration' ? 'text-amber-400' : 'text-slate-500'}`} />
+                      <Settings className={`h-3.5 w-3.5 ${modalActiveTab === 'configuration' ? 'text-amber-400' : 'text-muted'}`} />
                     </button>
                   </div>
 
                   {/* LIVE LOAD HEALTH INDICATOR */}
                   <div className="bg-slate-950/80 border border-slate-900 p-4 rounded-xl space-y-3">
                     <div className="flex items-center justify-between text-[10px]">
-                      <span className="text-slate-500 uppercase font-black">Zone Utilized Capacity</span>
+                      <span className="text-muted uppercase font-black">Zone Utilized Capacity</span>
                       <span className={`font-black ${utilizationRatio > 80 ? 'text-rose-500 animate-pulse' : utilizationRatio > 50 ? 'text-orange-400' : 'text-emerald-400'}`}>
                         {utilizationRatio}%
                       </span>
@@ -2230,10 +2230,10 @@ export default function YardMapPage() {
                   </div>
                 </div>
 
-                <div className="pt-4 border-t border-slate-900 space-y-2 mt-4 text-[9px] text-slate-500 leading-relaxed uppercase">
+                <div className="pt-4 border-t border-slate-900 space-y-2 mt-4 text-[9px] text-muted leading-relaxed uppercase">
                   <div>Current Assigned Operator:</div>
                   <div className="text-xs font-bold text-slate-300">{assignedOp === 'Unassigned' ? '🚫 ' + assignedOp : '👷 ' + assignedOp}</div>
-                  <div className="mt-2 text-[8px] text-slate-600">Simcote Facility Admin Console <br/>Version 2.7.1 • Live Websocket</div>
+                  <div className="mt-2 text-[8px] text-muted">Simcote Facility Admin Console <br/>Version 2.7.1 • Live Websocket</div>
                 </div>
               </div>
 
@@ -2260,7 +2260,7 @@ export default function YardMapPage() {
                             {modalZoneBundles.length} detected
                           </span>
                         </h3>
-                        <p className="text-xxs text-slate-500 mt-0.5">Physical bundle allocations residing inside coordinates of {modalZone.id}.</p>
+                        <p className="text-xxs text-muted mt-0.5">Physical bundle allocations residing inside coordinates of {modalZone.id}.</p>
                       </div>
                     </div>
 
@@ -2269,8 +2269,8 @@ export default function YardMapPage() {
                       {modalZoneBundles.length === 0 ? (
                         <div className="h-full flex flex-col items-center justify-center py-16 text-center border border-dashed border-slate-900 rounded-2xl bg-slate-950/30">
                           <HelpCircle className="h-10 w-10 text-slate-700 mb-3" />
-                          <span className="text-xxs uppercase tracking-wider text-slate-500 block mb-1">VACANT SECTOR PLAN</span>
-                          <p className="text-[10px] text-slate-500 max-w-sm font-sans leading-relaxed">There are currently no package coordinates registered here. You can transition bundles here by staging, or carrying them via Gantry cranes.</p>
+                          <span className="text-xxs uppercase tracking-wider text-muted block mb-1">VACANT SECTOR PLAN</span>
+                          <p className="text-[10px] text-muted max-w-sm font-sans leading-relaxed">There are currently no package coordinates registered here. You can transition bundles here by staging, or carrying them via Gantry cranes.</p>
                         </div>
                       ) : (
                         <div className="border border-slate-900 bg-slate-900/10 rounded-xl overflow-hidden">
@@ -2389,15 +2389,15 @@ export default function YardMapPage() {
                           {zoneEvents.length} events
                         </span>
                       </h3>
-                      <p className="text-xxs text-slate-500 mt-0.5">Historical and active telemetry movements passing from or into {modalZone.id}.</p>
+                      <p className="text-xxs text-muted mt-0.5">Historical and active telemetry movements passing from or into {modalZone.id}.</p>
                     </div>
 
                     <div className="flex-1 overflow-y-auto pr-1 space-y-2">
                       {zoneEvents.length === 0 ? (
                         <div className="h-full flex flex-col items-center justify-center py-16 text-center border border-dashed border-slate-900 rounded-2xl bg-slate-950/30">
                           <History className="h-10 w-10 text-slate-700 mb-3" />
-                          <span className="text-xxs uppercase tracking-wider text-slate-500 block mb-1">NO RECENT HISTORY RECORDED</span>
-                          <p className="text-[10px] text-slate-500 max-w-sm font-sans leading-relaxed">No bundle relocations, exceptions, or bender processing requests have been registered at this sector during the current Shift.</p>
+                          <span className="text-xxs uppercase tracking-wider text-muted block mb-1">NO RECENT HISTORY RECORDED</span>
+                          <p className="text-[10px] text-muted max-w-sm font-sans leading-relaxed">No bundle relocations, exceptions, or bender processing requests have been registered at this sector during the current Shift.</p>
                         </div>
                       ) : (
                         zoneEvents.map((ev) => (
@@ -2406,12 +2406,12 @@ export default function YardMapPage() {
                               <div className="flex items-center gap-2 flex-wrap">
                                 <span className="bg-slate-900 px-1.5 py-0.5 rounded text-[8px] font-black text-slate-400 uppercase border border-slate-800 tracking-widest">{ev.id}</span>
                                 <span className="font-extrabold text-white">{ev.action}</span>
-                                <span className="text-[10px] text-slate-600">•</span>
+                                <span className="text-[10px] text-muted">•</span>
                                 <span className="text-slate-400 font-bold">Bundle: {ev.tagId}</span>
                               </div>
                               <p className="text-slate-400 leading-relaxed font-sans">{ev.details || `Relocated from: ${ev.fromLocation} → ${ev.toLocation}`}</p>
                             </div>
-                            <div className="text-left sm:text-right font-mono text-[9px] shrink-0 text-slate-500 space-y-0.5 border-t sm:border-t-0 border-slate-900/50 pt-1 sm:pt-0">
+                            <div className="text-left sm:text-right font-mono text-[9px] shrink-0 text-muted space-y-0.5 border-t sm:border-t-0 border-slate-900/50 pt-1 sm:pt-0">
                               <div>Operator: <span className="text-indigo-400 font-bold">{ev.operatorName}</span></div>
                               <div>{new Date(ev.timestamp).toLocaleDateString()} {new Date(ev.timestamp).toLocaleTimeString()}</div>
                             </div>
@@ -2430,7 +2430,7 @@ export default function YardMapPage() {
                         <Settings className="h-4 w-4 text-amber-500" />
                         <span>Coordinate Control Configuration & Compliance</span>
                       </h3>
-                      <p className="text-xxs text-slate-500 mt-0.5">Configure live calibration parameters, safety capacities, operator assignments, and exceptions.</p>
+                      <p className="text-xxs text-muted mt-0.5">Configure live calibration parameters, safety capacities, operator assignments, and exceptions.</p>
                     </div>
 
                     <div className="flex-1 overflow-y-auto pr-1 grid grid-cols-1 md:grid-cols-2 gap-6 pb-6">
@@ -2439,11 +2439,11 @@ export default function YardMapPage() {
                       <div className="border border-slate-900 bg-slate-900/10 p-4 rounded-xl space-y-4">
                         <div className="space-y-1 border-b border-slate-900 pb-2">
                           <h4 className="text-[11px] uppercase font-black text-white tracking-widest">👷 Worker Assignment Selector</h4>
-                          <p className="text-[9px] text-slate-500 font-sans">Assign a registered floor supervisor or operator to supervise this zone coordinate.</p>
+                          <p className="text-[9px] text-muted font-sans">Assign a registered floor supervisor or operator to supervise this zone coordinate.</p>
                         </div>
                         <div className="space-y-1.5">
                           <label className="text-[9px] text-slate-400 uppercase block">Available Plant Operators</label>
-                          <select 
+                          <select aria-label="Available Plant Operators" 
                             value={assignedOp}
                             onChange={(e) => {
                               const val = e.target.value;
@@ -2472,7 +2472,7 @@ export default function YardMapPage() {
                         <div className="space-y-4">
                           <div className="space-y-1 border-b border-slate-900 pb-2">
                             <h4 className="text-[11px] uppercase font-black text-white tracking-widest">📊 Safety Weight Buffer Threshold</h4>
-                            <p className="text-[9px] text-slate-500 font-sans">Override the default 75,000 LBS zone limit. The heatmap and the server-side gantry interlocks both use this value.</p>
+                            <p className="text-[9px] text-muted font-sans">Override the default 75,000 LBS zone limit. The heatmap and the server-side gantry interlocks both use this value.</p>
                           </div>
                           
                           <div className="space-y-2">
@@ -2515,7 +2515,7 @@ export default function YardMapPage() {
                               }}
                               className="w-full bg-slate-900 accent-amber-500 cursor-pointer h-1.5 rounded-lg"
                             />
-                            <div className="flex justify-between text-[8px] text-slate-500">
+                            <div className="flex justify-between text-[8px] text-muted">
                               <span>5,000 LBS</span>
                               <span>75,000 LBS</span>
                               <span>150,000 LBS</span>
@@ -2536,7 +2536,7 @@ export default function YardMapPage() {
                             <AlertTriangle className="h-4 w-4 text-orange-500" />
                             <span>Fulfill Zone Alert / Safety Exception</span>
                           </h4>
-                          <p className="text-[9px] text-slate-500 font-sans">File immediate operations hazard notice or misplaced inventory exception at this sector coordinate.</p>
+                          <p className="text-[9px] text-muted font-sans">File immediate operations hazard notice or misplaced inventory exception at this sector coordinate.</p>
                         </div>
 
                         {exSubmitSuccess && (
@@ -2594,7 +2594,7 @@ export default function YardMapPage() {
                         >
                           <div className="space-y-1.5">
                             <label className="text-[9px] text-slate-400 uppercase block">Associate Active Bundle Tag</label>
-                            <select 
+                            <select aria-label="Associate Active Bundle Tag" 
                               value={exFormTagId}
                               onChange={(e) => setExFormTagId(e.target.value)}
                               className="w-full bg-slate-900 border border-slate-800 rounded-lg p-2.5 text-xs text-slate-200 focus:outline-hidden focus:border-amber-500"
@@ -2610,7 +2610,7 @@ export default function YardMapPage() {
 
                           <div className="space-y-1.5">
                             <label className="text-[9px] text-slate-400 uppercase block">Exception Category Class</label>
-                            <select 
+                            <select aria-label="Exception Category Class" 
                               value={exFormType}
                               onChange={(e) => setExFormType(e.target.value)}
                               className="w-full bg-slate-900 border border-slate-800 rounded-lg p-2.5 text-xs text-slate-200 focus:outline-hidden focus:border-amber-500"

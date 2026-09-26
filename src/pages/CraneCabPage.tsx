@@ -183,7 +183,7 @@ export default function CraneCabPage() {
           <p className="text-xxs text-slate-400 font-mono tracking-wider mt-0.5 uppercase">RIGGER CAB CONSOLE • AUTO-POLLS 10s</p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-xxs font-mono text-slate-500">CAB ACTIVE:</span>
+          <span className="text-xxs font-mono text-muted">CAB ACTIVE:</span>
           <span className="font-mono text-xs text-amber-500 font-bold bg-amber-500/10 px-2.5 py-1 rounded border border-amber-500/20">
             {activeCrane}
           </span>
@@ -205,19 +205,19 @@ export default function CraneCabPage() {
           </div>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 pt-1 text-slate-400 font-mono text-[10px]">
             <div>
-              <span className="text-slate-500 block uppercase text-[8px] font-bold">WIND VELOCITY</span>
+              <span className="text-muted block uppercase text-[8px] font-bold">WIND VELOCITY</span>
               <span className="text-white font-extrabold flex items-center gap-1">💨 14.5 knots <span className="text-emerald-400 text-[8px] font-normal">[SAFE]</span></span>
             </div>
             <div>
-              <span className="text-slate-500 block uppercase text-[8px] font-bold">GANTRY RAIL SPEED</span>
+              <span className="text-muted block uppercase text-[8px] font-bold">GANTRY RAIL SPEED</span>
               <span className="text-white font-extrabold">⚡ 2.4 m/s</span>
             </div>
             <div>
-              <span className="text-slate-500 block uppercase text-[8px] font-bold">HOIST CABLE LOAD</span>
+              <span className="text-muted block uppercase text-[8px] font-bold">HOIST CABLE LOAD</span>
               <span className="text-white font-extrabold">{loadedUnderActiveCrane ? '⚖️ ' + loadedUnderActiveCrane.weight + ' LBS' : 'EMPTY'}</span>
             </div>
             <div>
-              <span className="text-slate-500 block uppercase text-[8px] font-bold">MOTOR STATS</span>
+              <span className="text-muted block uppercase text-[8px] font-bold">MOTOR STATS</span>
               <span className="text-emerald-400 font-bold">⚡ NORMAL OPERATIONAL</span>
             </div>
           </div>
@@ -234,7 +234,7 @@ export default function CraneCabPage() {
           <div className="flex-1">
             <span className="font-bold">CRANE RIGGING EXCEPTION:</span> {errorNotice}
           </div>
-          <button onClick={clearMessages} className="text-slate-500 hover:text-white cursor-pointer select-none">✕</button>
+          <button onClick={clearMessages} className="text-muted hover:text-white cursor-pointer select-none">✕</button>
         </div>
       )}
 
@@ -244,7 +244,7 @@ export default function CraneCabPage() {
           <div className="flex-1">
             <span className="font-bold">CONE STATUS LOCKED:</span> {successNotice}
           </div>
-          <button onClick={clearMessages} className="text-slate-500 hover:text-white cursor-pointer select-none">✕</button>
+          <button onClick={clearMessages} className="text-muted hover:text-white cursor-pointer select-none">✕</button>
         </div>
       )}
 
@@ -272,13 +272,13 @@ export default function CraneCabPage() {
               }`}
             >
               <div className="flex items-center justify-between mb-1.5">
-                <span className={`text-[10px] font-mono uppercase tracking-widest ${isSelected ? 'text-slate-900 font-extrabold' : 'text-slate-500'}`}>
+                <span className={`text-[10px] font-mono uppercase tracking-widest ${isSelected ? 'text-slate-900 font-extrabold' : 'text-muted'}`}>
                   {c.id}
                 </span>
                 <span className={`inline-block h-1.5 w-1.5 rounded-full ${hasLoad ? 'bg-rose-500' : 'bg-emerald-500'}`} />
               </div>
               <div className={`text-xs font-bold ${isSelected ? 'text-slate-950' : 'text-slate-200'}`}>{c.label}</div>
-              <div className={`text-[10px] font-mono mt-1 ${isSelected ? 'text-slate-800' : 'text-slate-500'}`}>
+              <div className={`text-[10px] font-mono mt-1 ${isSelected ? 'text-slate-800' : 'text-muted'}`}>
                 {hasLoad ? 'RIGGED WITH SUSPENDED LOAD' : c.area}
               </div>
             </button>
@@ -309,25 +309,25 @@ export default function CraneCabPage() {
                     <span>RIGGING ACTIVE</span>
                   </div>
 
-                  <span className="text-[10px] text-slate-500 font-mono block">SUSPENDED CARGO TAG:</span>
+                  <span className="text-[10px] text-muted font-mono block">SUSPENDED CARGO TAG:</span>
                   <div className="text-base font-bold font-mono text-white mt-1">
                     BUNDLE {loadedUnderActiveCrane.tagId}
                   </div>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4 pt-4 border-t border-slate-900 pb-2">
                     <div>
-                      <span className="text-[9px] font-mono text-slate-500 uppercase block">GRADE</span>
+                      <span className="text-[9px] font-mono text-muted uppercase block">GRADE</span>
                       <span className="text-xs font-mono font-bold text-teal-400">{loadedUnderActiveCrane.grade}</span>
                     </div>
                     <div>
-                      <span className="text-[9px] font-mono text-slate-500 uppercase block">MASS WEIGHT</span>
+                      <span className="text-[9px] font-mono text-muted uppercase block">MASS WEIGHT</span>
                       <span className="text-xs font-mono font-bold text-white">{loadedUnderActiveCrane.weight} LBS</span>
                     </div>
                     <div>
-                      <span className="text-[9px] font-mono text-slate-500 uppercase block">DIMENSION SIZE</span>
+                      <span className="text-[9px] font-mono text-muted uppercase block">DIMENSION SIZE</span>
                       <span className="text-xs font-mono font-bold text-white">{loadedUnderActiveCrane.barSize} SIZE</span>
                     </div>
                     <div>
-                      <span className="text-[9px] font-mono text-slate-500 uppercase block">ROUTE DESTINATION</span>
+                      <span className="text-[9px] font-mono text-muted uppercase block">ROUTE DESTINATION</span>
                       <span className="text-xs font-mono font-bold text-amber-500 truncate max-w-[120px] block">
                         {loadedUnderActiveCrane.route.split(' -> ').slice(-2).join(' → ') || 'Unassigned'}
                       </span>
@@ -337,7 +337,7 @@ export default function CraneCabPage() {
 
                 {/* Drop Action Form */}
                 <div className="bg-slate-950/60 p-4 border border-slate-800 rounded-xl space-y-3">
-                  <span className="text-[10px] font-mono uppercase tracking-widest text-slate-500 block">Select Release Drop Target</span>
+                  <span className="text-[10px] font-mono uppercase tracking-widest text-muted block">Select Release Drop Target</span>
                   <div className="flex flex-col md:flex-row gap-2.5">
                     <select
                       value={dropTarget}
@@ -423,7 +423,7 @@ export default function CraneCabPage() {
                 </div>
               </div>
             ) : (
-              <div className="text-center p-12 border border-dashed border-slate-800 rounded-xl bg-slate-950/20 font-mono text-xs text-slate-500">
+              <div className="text-center p-12 border border-dashed border-slate-800 rounded-xl bg-slate-950/20 font-mono text-xs text-muted">
                 Rigging suspension hook resides empty. Choose a staged bundle below to pickup.
               </div>
             )}
@@ -433,11 +433,11 @@ export default function CraneCabPage() {
           {/* Staging Bundles queue panel (Right side) */}
           <div className="space-y-4">
             <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-5" id="bundles-staged-panel">
-              <span className="text-[10px] uppercase font-mono tracking-wider text-slate-500 block mb-2">Facility-Wide Buffer</span>
+              <span className="text-[10px] uppercase font-mono tracking-wider text-muted block mb-2">Facility-Wide Buffer</span>
               <h3 className="text-xs font-bold font-mono text-white mb-4">BUNDLES WAITING ON CRANE IN YARD</h3>
 
               {stagingQueues.length === 0 ? (
-                <p className="text-center py-12 font-mono text-xxs text-slate-600">No bundles staged for transport currently.</p>
+                <p className="text-center py-12 font-mono text-xxs text-muted">No bundles staged for transport currently.</p>
               ) : (
                 <div className="space-y-2 max-h-[380px] overflow-y-auto pr-1">
                   {stagingQueues.map((b) => (
@@ -452,13 +452,13 @@ export default function CraneCabPage() {
                             {b.tagId}
                           </span>
                           <span className={`text-[8px] uppercase font-mono px-1 rounded ${
-                            b.grade === 'Epoxy' ? 'bg-teal-500/10 text-teal-400 border border-teal-500/20' : 'bg-slate-900 text-slate-500 border border-slate-800'
+                            b.grade === 'Epoxy' ? 'bg-teal-500/10 text-teal-400 border border-teal-500/20' : 'bg-slate-900 text-muted border border-slate-800'
                           }`}>
                             {b.grade}
                           </span>
                         </div>
                         <p className="text-xxs font-mono text-slate-400 mt-1">Weight: {b.weight} lbs • Size: {b.barSize}</p>
-                        <p className="text-[9px] font-mono text-slate-500 mt-0.5 truncate max-w-[130px]" title={b.location}>Location: {b.location}</p>
+                        <p className="text-[9px] font-mono text-muted mt-0.5 truncate max-w-[130px]" title={b.location}>Location: {b.location}</p>
                       </div>
 
                       <button
@@ -522,7 +522,7 @@ function GantrySlewer({ activeCrane, hasLoad }: GantrySlewerProps) {
     <div className="flex flex-col lg:flex-row items-center gap-4 bg-slate-900/60 p-4 rounded-xl border border-slate-800 font-mono text-xs z-10 shrink-0 select-none max-w-full">
       {/* S3. 2D Grid Representation of Gantry Space */}
       <div className="space-y-1.5 shrink-0">
-        <span className="text-[8px] text-slate-500 uppercase font-bold tracking-widest block">Interactive Gantry Coordinates</span>
+        <span className="text-[8px] text-muted uppercase font-bold tracking-widest block">Interactive Gantry Coordinates</span>
         <div 
           onClick={handleGridClick}
           className="relative h-28 w-44 bg-slate-950 rounded-lg border border-slate-800 p-1 overflow-hidden cursor-crosshair hover:border-slate-700 transition-colors"
@@ -544,7 +544,7 @@ function GantrySlewer({ activeCrane, hasLoad }: GantrySlewerProps) {
             <span className={`h-1 w-1 rounded-full ${hasLoad ? 'bg-rose-200' : 'bg-white'}`} />
           </div>
 
-          <div className="absolute bottom-1 right-2 text-[7px] text-slate-500 uppercase">
+          <div className="absolute bottom-1 right-2 text-[7px] text-muted uppercase">
             X:{posX}ft | Y:{posY}ft
           </div>
           <div className="absolute top-1 left-2 text-[7px] text-amber-500/80 font-bold font-mono">
@@ -556,7 +556,7 @@ function GantrySlewer({ activeCrane, hasLoad }: GantrySlewerProps) {
       {/* Axis controllers & Diagnostics */}
       <div className="flex flex-col gap-2 shrink-0 w-44">
         <div>
-          <span className="text-[7px] text-slate-500 uppercase block font-bold">Grid sector detection</span>
+          <span className="text-[7px] text-muted uppercase block font-bold">Grid sector detection</span>
           <span className="text-[10px] text-slate-300 font-extrabold truncate block w-40">{sectorName}</span>
         </div>
 

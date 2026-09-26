@@ -69,7 +69,7 @@ export default function RoleSwitcher() {
           className="absolute right-0 z-50 mt-2 w-64 origin-top-right rounded-xl border border-slate-800 bg-slate-950 p-1 shadow-2xl focus:outline-hidden shadow-black/80 ring-1 ring-black/5"
         >
           <div className="px-3 py-2 border-b border-slate-900 mb-1">
-            <span className="text-xxs font-mono uppercase tracking-widest text-slate-500">Select Operator Station</span>
+            <span className="text-xxs font-mono uppercase tracking-widest text-muted">Select Operator Station</span>
           </div>
           <div className="space-y-1">
             {operators.map((op) => (
@@ -88,7 +88,7 @@ export default function RoleSwitcher() {
               >
                 <div className="flex flex-col">
                   <span className="font-medium text-xs">{op.name}</span>
-                  <span className="text-xxs text-slate-500 uppercase tracking-wide font-mono">
+                  <span className="text-xxs text-muted uppercase tracking-wide font-mono">
                     {op.role.replace('_', ' ')} {op.currentStation ? `• ${op.currentStation}` : ''}
                   </span>
                 </div>

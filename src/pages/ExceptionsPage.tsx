@@ -222,7 +222,7 @@ export default function ExceptionsPage() {
           <div className="flex-1">
             <strong>LOG ACCIDENT SYSTEM ALARM:</strong> {errMessage}
           </div>
-          <button onClick={clearAlerts} className="text-slate-500 hover:text-white cursor-pointer select-none">✕</button>
+          <button onClick={clearAlerts} className="text-muted hover:text-white cursor-pointer select-none">✕</button>
         </div>
       )}
 
@@ -232,15 +232,15 @@ export default function ExceptionsPage() {
           <div className="flex-1 font-mono">
             <strong>FLIGHT CORRECTION LOGGED:</strong> {okMessage}
           </div>
-          <button onClick={clearAlerts} className="text-slate-500 hover:text-white cursor-pointer select-none">✕</button>
+          <button onClick={clearAlerts} className="text-muted hover:text-white cursor-pointer select-none">✕</button>
         </div>
       )}
 
       {/* 7-Day Deviation Metrics Summary Chart */}
       <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-5 space-y-3">
-        <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
+        <h2 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
           <span>📈 Floor Exception Trends (Last 7 Days)</span>
-        </h3>
+        </h2>
         <p className="text-xxs font-sans text-slate-400 leading-normal max-w-xl">
           Tracks the volume of unresolved active deviation holds versus resolved and archived issues across the last week, optimizing recovery logs on the plant-floor.
         </p>
@@ -300,8 +300,8 @@ export default function ExceptionsPage() {
             <form onSubmit={handleSubmitException} className="space-y-4">
               {/* Pre-fill bundle list */}
               <div className="space-y-1.5">
-                <label className="text-[10px] uppercase font-mono tracking-wider text-slate-500 block">Associated Bundle Tag ID</label>
-                <select
+                <label className="text-[10px] uppercase font-mono tracking-wider text-muted block">Associated Bundle Tag ID</label>
+                <select aria-label="Associated Bundle Tag ID"
                   value={selectedTag}
                   onChange={(e) => setSelectedTag(e.target.value)}
                   className="w-full bg-slate-950 text-slate-200 border border-slate-800 rounded-lg p-2.5 text-xs font-mono focus:border-amber-500"
@@ -317,8 +317,8 @@ export default function ExceptionsPage() {
 
               {/* Deviation type selection */}
               <div className="space-y-1.5">
-                <label className="text-[10px] uppercase font-mono tracking-wider text-slate-500 block">Accident Classification</label>
-                <select
+                <label className="text-[10px] uppercase font-mono tracking-wider text-muted block">Accident Classification</label>
+                <select aria-label="Accident Classification"
                   value={selectedType}
                   onChange={(e) => setSelectedType(e.target.value)}
                   className="w-full bg-slate-950 text-slate-200 border border-slate-800 rounded-lg p-2.5 text-xs font-mono focus:border-amber-500"
@@ -345,7 +345,7 @@ export default function ExceptionsPage() {
                       onChange={(e) => setCoatingDamagePct(e.target.value)}
                       className="w-full bg-slate-950 text-slate-200 border border-slate-800 rounded-lg p-2 text-xs font-mono focus:border-rose-500"
                     />
-                    <p className="text-[9px] text-slate-500 font-mono">ASTM standard automatic REJECTION is triggered if damage &gt; 2.0%.</p>
+                    <p className="text-[9px] text-muted font-mono">ASTM standard automatic REJECTION is triggered if damage &gt; 2.0%.</p>
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-[10px] uppercase font-mono tracking-wider text-rose-400 block font-bold">Damaged 1-Foot Section ID</label>
@@ -362,7 +362,7 @@ export default function ExceptionsPage() {
 
               {/* Accompanying descriptive body */}
               <div className="space-y-1.5">
-                <label className="text-[10px] uppercase font-mono tracking-wider text-slate-500 block">Descriptive Details</label>
+                <label className="text-[10px] uppercase font-mono tracking-wider text-muted block">Descriptive Details</label>
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
@@ -388,16 +388,16 @@ export default function ExceptionsPage() {
           
           {/* Active deviations needing administrative clearance */}
           <div className="space-y-3">
-            <h3 className="text-xs font-bold font-mono text-rose-400 uppercase tracking-widest flex items-center gap-1.5">
+            <h2 className="text-xs font-bold font-mono text-rose-400 uppercase tracking-widest flex items-center gap-1.5">
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75 animate-bounce"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
               </span>
               <span>Active Deviation holds ({openExceptions.length})</span>
-            </h3>
+            </h2>
 
             {openExceptions.length === 0 ? (
-              <div className="text-center p-8 border border-dashed border-slate-800 rounded-xl bg-slate-950/20 font-mono text-xs text-slate-500">
+              <div className="text-center p-8 border border-dashed border-slate-800 rounded-xl bg-slate-950/20 font-mono text-xs text-muted">
                 All production lines report clean sheets. No hold active.
               </div>
             ) : (
@@ -422,7 +422,7 @@ export default function ExceptionsPage() {
                           </div>
                         </div>
                       )}
-                      <div className="flex flex-wrap gap-x-4 gap-y-1 pt-2 text-[10px] text-slate-500 font-mono">
+                      <div className="flex flex-wrap gap-x-4 gap-y-1 pt-2 text-[10px] text-muted font-mono">
                         <span className="flex items-center gap-1"><Calendar className="h-3.5 w-3.5" /> {new Date(ex.timestamp).toLocaleTimeString()}</span>
                         <span className="flex items-center gap-1"><User className="h-3.5 w-3.5" /> Reporter: {ex.operatorName}</span>
                       </div>
@@ -437,7 +437,7 @@ export default function ExceptionsPage() {
                           ARCHIVE RESOLVED
                         </button>
                       ) : (
-                        <span className="font-mono text-[9px] text-slate-500 uppercase select-none tracking-wider flex items-center gap-1">
+                        <span className="font-mono text-[9px] text-muted uppercase select-none tracking-wider flex items-center gap-1">
                           <Lock className="h-3 w-3" /> Admin Only
                         </span>
                       )}
@@ -450,28 +450,28 @@ export default function ExceptionsPage() {
 
           {/* Resolved/Archived deviations list */}
           <div className="space-y-3 pt-4 border-t border-slate-900">
-            <h3 className="text-xs font-bold font-mono text-slate-500 uppercase tracking-widest pl-1">
+            <h3 className="text-xs font-bold font-mono text-muted uppercase tracking-widest pl-1">
               Archived Holds ({resolvedExceptions.length})
             </h3>
 
             {resolvedExceptions.length === 0 ? (
-              <p className="text-center font-mono text-xxs text-slate-600 py-8">No archived deviation reports listed.</p>
+              <p className="text-center font-mono text-xxs text-muted py-8">No archived deviation reports listed.</p>
             ) : (
               <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
                 {resolvedExceptions.map((ex) => (
-                  <div key={ex.id} className="bg-slate-950/60 p-3 border border-slate-900 rounded-xl flex flex-col md:flex-row justify-between gap-4 text-xxs font-mono text-slate-500">
+                  <div key={ex.id} className="bg-slate-950/60 p-3 border border-slate-900 rounded-xl flex flex-col md:flex-row justify-between gap-4 text-xxs font-mono text-muted">
                     <div>
                       <div className="flex items-center gap-1.5">
                         <span className="font-mono text-[9.5px] font-bold text-slate-400">Bundle {ex.tagId}</span>
-                        <span className="text-slate-600">({ex.type})</span>
+                        <span className="text-muted">({ex.type})</span>
                       </div>
                       <p className="text-slate-400 font-sans py-1 leading-normal">{ex.description}</p>
                       {ex.qualityAudit && (
                         <div className="my-1.5 p-1.5 bg-slate-900/40 border border-slate-800 rounded-lg text-[10px] font-mono space-y-0.5">
-                          <div className="text-slate-500">ASTM QC: <span className="text-slate-400 font-bold">{ex.qualityAudit.coatingDamagePct}%</span> damage in section <span className="text-slate-400 font-bold">{ex.qualityAudit.damagedFootSection}</span></div>
+                          <div className="text-muted">ASTM QC: <span className="text-slate-400 font-bold">{ex.qualityAudit.coatingDamagePct}%</span> damage in section <span className="text-slate-400 font-bold">{ex.qualityAudit.damagedFootSection}</span></div>
                         </div>
                       )}
-                      <span className="text-xxs block text-slate-600">RESOLVED BY {ex.resolvedBy} AT {new Date(ex.resolvedAt!).toLocaleTimeString()}</span>
+                      <span className="text-xxs block text-muted">RESOLVED BY {ex.resolvedBy} AT {new Date(ex.resolvedAt!).toLocaleTimeString()}</span>
                     </div>
                     <span className="text-xxs text-emerald-500 flex items-center gap-1 font-bold shrink-0 self-start md:self-center">
                       <CheckCircle className="h-3.5 w-3.5 text-emerald-500" /> CLOSED

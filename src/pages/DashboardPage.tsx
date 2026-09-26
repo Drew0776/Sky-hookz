@@ -122,7 +122,7 @@ export default function DashboardPage() {
       <div className="flex flex-col items-center justify-center min-h-[50vh] text-center p-6 bg-slate-900/10 rounded-2xl border border-slate-800 border-dashed" id="unauthorized-message">
         <Flame className="h-10 w-10 text-rose-500 mb-3 animate-pulse" />
         <h2 className="font-mono text-sm font-bold text-white uppercase tracking-wider">RESTRICTED TERMINAL ACCESS</h2>
-        <p className="text-xs text-slate-500 font-mono tracking-wide max-w-sm mt-1">
+        <p className="text-xs text-muted font-mono tracking-wide max-w-sm mt-1">
           Plant-wide dashboard telemetry is reserved exclusively for the Control Center Admin role.
         </p>
       </div>
@@ -255,7 +255,7 @@ export default function DashboardPage() {
               <div className="space-y-1">
                 <div className="font-bold text-amber-500 uppercase tracking-wider text-[10px]">UV EXPOSURE HAZARD WARNING</div>
                 <p className="text-slate-300 font-sans leading-normal">
-                  There are currently <span className="font-bold text-white text-xs">{metrics.uvHazardsCount}</span> coated epoxy bundle(s) outdoors for <span className="font-bold text-amber-400">25+ days</span>. Cover them with opaque material before day 30. {UV_GUIDANCE}
+                  There are currently <span className="font-bold text-white text-xs">{metrics.uvHazardsCount}</span> coated epoxy bundle(s) outdoors for <span className="font-bold text-amber-400">25+ days</span> that need covering soon. {UV_GUIDANCE}
                 </p>
               </div>
             </div>
@@ -271,7 +271,7 @@ export default function DashboardPage() {
           <div className="bg-slate-900/40 border border-slate-800/80 rounded-2xl p-5 space-y-6">
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <span className="text-[10px] uppercase font-mono tracking-wider text-slate-500">Facility Production Rate</span>
+                <span className="text-[10px] uppercase font-mono tracking-wider text-muted">Facility Production Rate</span>
                 <h2 className="text-xs font-bold font-mono text-white tracking-wider">SHIFT-AWARE LOAD THROUGHPUT</h2>
               </div>
               <Scale className="h-4 w-4 text-amber-500" />
@@ -280,23 +280,23 @@ export default function DashboardPage() {
             {/* Split view: Weight stats */}
             <div className="grid grid-cols-2 gap-4 pt-2">
               <div className="space-y-1">
-                <div className="text-xxs text-slate-500 font-mono uppercase tracking-widest">1st Shift Throughput</div>
+                <div className="text-xxs text-muted font-mono uppercase tracking-widest">1st Shift Throughput</div>
                 <div className="text-3xl font-mono font-bold text-amber-500">{metrics.firstShiftThroughput} <span className="text-xs text-slate-400 leading-none">TONS</span></div>
-                <div className="text-[10px] text-slate-500 font-mono">Hours 06:00 – 16:30</div>
+                <div className="text-[10px] text-muted font-mono">Hours 06:00 – 16:30</div>
               </div>
               <div className="space-y-1 border-l border-slate-800 pl-4">
-                <div className="text-xxs text-slate-500 font-mono uppercase tracking-widest">2nd Shift Throughput</div>
+                <div className="text-xxs text-muted font-mono uppercase tracking-widest">2nd Shift Throughput</div>
                 <div className="text-3xl font-mono font-bold text-sky-400">{metrics.secondShiftThroughput} <span className="text-xs text-slate-400 leading-none">TONS</span></div>
-                <div className="text-[10px] text-slate-500 font-mono">Hours 16:30 – 03:00</div>
+                <div className="text-[10px] text-muted font-mono">Hours 16:30 – 03:00</div>
               </div>
             </div>
 
             {/* Custom SVG Visual Ratio Indicator */}
             <div className="space-y-2 pt-4 border-t border-slate-900">
-              <span className="text-[10px] font-mono tracking-widest text-slate-500 uppercase">Load Balance Bar</span>
+              <span className="text-[10px] font-mono tracking-widest text-muted uppercase">Load Balance Bar</span>
               <div className="relative h-4 rounded-full bg-slate-950 overflow-hidden border border-slate-900 flex">
                 {metrics.firstShiftThroughput === 0 && metrics.secondShiftThroughput === 0 ? (
-                  <div className="w-full h-full flex items-center justify-center text-slate-600 text-[10px] font-mono uppercase tracking-wider">
+                  <div className="w-full h-full flex items-center justify-center text-muted text-[10px] font-mono uppercase tracking-wider">
                     No loads processed during current timeframe
                   </div>
                 ) : (
@@ -312,7 +312,7 @@ export default function DashboardPage() {
                   </>
                 )}
               </div>
-              <div className="flex items-center justify-between text-[10px] font-mono text-slate-500">
+              <div className="flex items-center justify-between text-[10px] font-mono text-muted">
                 <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-amber-500"></span> First Shift</span>
                 <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-sky-400"></span> Second Shift</span>
               </div>
@@ -327,10 +327,10 @@ export default function DashboardPage() {
 
             <div className="p-3 bg-slate-950 rounded-xl border border-slate-900">
               {jobs.length === 0 ? (
-                <p className="text-center text-xxs font-mono text-slate-500 py-6">No jobs currently tracked.</p>
+                <p className="text-center text-xxs font-mono text-muted py-6">No jobs currently tracked.</p>
               ) : (
                 <div className="space-y-3">
-                  <div className="flex justify-between items-center text-[9px] font-mono text-slate-500 uppercase px-1">
+                  <div className="flex justify-between items-center text-[9px] font-mono text-muted uppercase px-1">
                     <span>Active Jobs Summary Graph</span>
                     <span>Tons remaining on floor</span>
                   </div>
@@ -384,7 +384,7 @@ export default function DashboardPage() {
                     </ResponsiveContainer>
                   </div>
 
-                  <div className="flex justify-between items-center text-[8px] text-slate-500 font-mono px-1">
+                  <div className="flex justify-between items-center text-[8px] text-muted font-mono px-1">
                     <span>* Showing top 5 scheduled projects</span>
                     <span>Values in short tons (2,000 lbs)</span>
                   </div>
@@ -396,7 +396,7 @@ export default function DashboardPage() {
           {/* Facility Dispatch & Production Trends AreaChart */}
           <div className="bg-slate-900/40 border border-slate-800/80 rounded-2xl p-5 space-y-4">
             <div>
-              <span className="text-[10px] uppercase font-mono tracking-wider text-slate-500">Live Logistics Timeline</span>
+              <span className="text-[10px] uppercase font-mono tracking-wider text-muted">Live Logistics Timeline</span>
               <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-white">YARD PRODUCTION & DISPATCH TRENDS</h3>
             </div>
             <div className="p-3 bg-slate-950 rounded-xl border border-slate-900">
@@ -433,7 +433,7 @@ export default function DashboardPage() {
           {/* Interactive Yard Heatmap Grid */}
           <div className="bg-slate-900/40 border border-slate-800/80 rounded-2xl p-5 space-y-4">
             <div>
-              <span className="text-[10px] uppercase font-mono tracking-wider text-slate-500">Live Density Heatmap</span>
+              <span className="text-[10px] uppercase font-mono tracking-wider text-muted">Live Density Heatmap</span>
               <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-200">INTERACTIVE YARD STATUS & HEATMAP FILTER</h3>
               <p className="text-[11px] text-slate-400 font-sans mt-1">
                 Click on any sector block below to filter and inspect active manufacturing stock, weights, and detailed bundle specs within that zone.
@@ -476,7 +476,7 @@ export default function DashboardPage() {
                     
                     <div className="mt-4">
                       <div className="text-base font-mono font-extrabold">{weightTons} T</div>
-                      <div className="flex flex-col gap-0.5 mt-1 text-[8px] font-mono text-slate-500">
+                      <div className="flex flex-col gap-0.5 mt-1 text-[8px] font-mono text-muted">
                         <span>{sector.bundlesList.length} Bundles</span>
                         <span className={stressColor}>{stressLevel}</span>
                       </div>
@@ -510,7 +510,7 @@ export default function DashboardPage() {
                   </div>
 
                   {activeSec.bundlesList.length === 0 ? (
-                    <p className="text-center text-xxs font-mono text-slate-500 py-4">No active bundle packages stacked in this sector.</p>
+                    <p className="text-center text-xxs font-mono text-muted py-4">No active bundle packages stacked in this sector.</p>
                   ) : (
                     <div className="overflow-x-auto">
                       <table className="w-full text-left border-collapse">
@@ -527,7 +527,7 @@ export default function DashboardPage() {
                           {activeSec.bundlesList.map((b) => (
                             <tr key={b.id} className="hover:bg-slate-900/20">
                               <td className="py-2 font-bold text-white">
-                                {b.tagId} <span className="text-[8px] text-slate-500">({b.jobId || 'No Job'})</span>
+                                {b.tagId} <span className="text-[8px] text-muted">({b.jobId || 'No Job'})</span>
                               </td>
                               <td className="py-2 text-slate-400">
                                 Bar Size #{b.barSize} • {b.length}ft • {b.grade}
@@ -571,7 +571,7 @@ export default function DashboardPage() {
               return (
                 <div key={idx} className="bg-slate-900/30 border border-slate-800/80 p-4 rounded-xl">
                   <div className="flex items-center justify-between">
-                    <span className="text-[9px] font-mono tracking-wider text-slate-500 uppercase">{stat.label}</span>
+                    <span className="text-[9px] font-mono tracking-wider text-muted uppercase">{stat.label}</span>
                     <Icon className={`h-3.5 w-3.5 ${stat.color}`} />
                   </div>
                   <div className="text-2xl font-mono font-bold mt-2 text-white">{stat.val}</div>
@@ -617,7 +617,7 @@ export default function DashboardPage() {
                 </ResponsiveContainer>
                 <div className="absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none">
                   <span className="text-[10px] font-mono font-black text-slate-200">{epoxyPct}%</span>
-                  <span className="text-[6px] font-mono text-slate-500 uppercase">Epoxy</span>
+                  <span className="text-[6px] font-mono text-muted uppercase">Epoxy</span>
                 </div>
               </div>
 
@@ -636,7 +636,7 @@ export default function DashboardPage() {
                   </span>
                   <span className="text-white font-extrabold">{blackTonsOnFloor} T</span>
                 </div>
-                <div className="text-[8px] text-slate-500 border-t border-slate-900 pt-1 leading-relaxed">
+                <div className="text-[8px] text-muted border-t border-slate-900 pt-1 leading-relaxed">
                   Real-time mass ratio using Recharts visualizer.
                 </div>
               </div>
@@ -644,26 +644,26 @@ export default function DashboardPage() {
 
             <div className="space-y-3">
               <div>
-                <span className="text-[10px] text-slate-500 font-mono block">LIVE MASS REMAINING ON FLOOR</span>
-                <span className="text-xl font-mono text-white font-bold">{totalTonnageInShop} <span className="text-xs text-slate-500">TONS</span></span>
+                <span className="text-[10px] text-muted font-mono block">LIVE MASS REMAINING ON FLOOR</span>
+                <span className="text-xl font-mono text-white font-bold">{totalTonnageInShop} <span className="text-xs text-muted">TONS</span></span>
               </div>
               <div>
-                <span className="text-[10px] text-slate-500 font-mono block">STAGED COATING BUNDLES</span>
-                <span className="text-xl font-mono text-white font-bold">{coatedTonnage} <span className="text-xs text-slate-500">TONS</span></span>
+                <span className="text-[10px] text-muted font-mono block">STAGED COATING BUNDLES</span>
+                <span className="text-xl font-mono text-white font-bold">{coatedTonnage} <span className="text-xs text-muted">TONS</span></span>
               </div>
               <div>
-                <span className="text-[10px] text-slate-500 font-mono block">ACTIVE ONGOING FAB JOBS</span>
+                <span className="text-[10px] text-muted font-mono block">ACTIVE ONGOING FAB JOBS</span>
                 <span className="text-xl font-mono text-amber-500 font-bold">{metrics.totalActiveJobs} / {jobs.length}</span>
               </div>
               <div>
-                <span className="text-[10px] text-slate-500 font-mono block">TOTAL PRODUCTION BUNDLES TRACKED</span>
+                <span className="text-[10px] text-muted font-mono block">TOTAL PRODUCTION BUNDLES TRACKED</span>
                 <span className="text-xl font-mono text-white font-bold">{bundles.length}</span>
               </div>
             </div>
           </div>
 
           <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 text-center">
-            <span className="text-[9px] font-mono text-slate-500 tracking-wider block uppercase">Material Compliance Guard</span>
+            <span className="text-[9px] font-mono text-muted tracking-wider block uppercase">Material Compliance Guard</span>
             <p className="text-[10px] font-sans text-slate-400 leading-normal mt-1.5 max-w-[240px] mx-auto">
               Any displacement of Black non-epoxy rebar packages beyond the SW quadrant will trigger immediate terminal alarms.
             </p>

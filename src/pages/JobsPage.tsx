@@ -272,7 +272,7 @@ export default function JobsPage() {
       case 'COATED':
         return 'bg-teal-500/10 text-teal-400 border border-teal-500/20';
       default:
-        return 'bg-slate-950 text-slate-500 border border-slate-900';
+        return 'bg-slate-950 text-muted border border-slate-900';
     }
   };
 
@@ -360,7 +360,7 @@ export default function JobsPage() {
             onChange={(e) => setSearchVal(e.target.value)}
             className="w-full text-xs font-mono bg-slate-900 text-slate-200 border border-slate-800 rounded-lg pl-9 pr-3 py-1.8 focus:border-amber-500 focus:outline-hidden"
           />
-          <Search className="absolute left-3 top-2.2 h-3.5 w-3.5 text-slate-500" />
+          <Search className="absolute left-3 top-2.2 h-3.5 w-3.5 text-muted" />
         </div>
       </div>
 
@@ -371,7 +371,7 @@ export default function JobsPage() {
             <Sparkles className="h-3.5 w-3.5 text-amber-500" />
             Registry Smart Filters & Advanced Sorting Options
           </h2>
-          <p className="text-[9px] font-mono text-slate-500 leading-none">
+          <p className="text-[9px] font-mono text-muted leading-none">
             Isolate scheduled client projects, order completion rates, or reorder the nested structural package logs.
           </p>
         </div>
@@ -379,8 +379,8 @@ export default function JobsPage() {
         <div className="flex flex-wrap items-center gap-3">
           {/* Material Grade selectivity */}
           <div className="flex items-center gap-1.5">
-            <span className="text-[9px] font-mono text-slate-500 uppercase">Grade:</span>
-            <select
+            <span className="text-[9px] font-mono text-muted uppercase">Grade:</span>
+            <select aria-label="Grade"
               value={jobGradeFilter}
               onChange={(e) => setJobGradeFilter(e.target.value as any)}
               className="bg-slate-900 border border-slate-800 text-slate-300 font-mono text-[10px] px-2.5 py-1.5 rounded-lg focus:border-amber-500 focus:outline-hidden cursor-pointer"
@@ -393,8 +393,8 @@ export default function JobsPage() {
 
           {/* Jobs Sorting Option */}
           <div className="flex items-center gap-1.5">
-            <span className="text-[9px] font-mono text-slate-500 uppercase">Sort Jobs:</span>
-            <select
+            <span className="text-[9px] font-mono text-muted uppercase">Sort Jobs:</span>
+            <select aria-label="Sort Jobs"
               value={jobSortOption}
               onChange={(e) => setJobSortOption(e.target.value as any)}
               className="bg-slate-900 border border-slate-800 text-slate-300 font-mono text-[10px] px-2.5 py-1.5 rounded-lg focus:border-amber-500 focus:outline-hidden cursor-pointer"
@@ -409,8 +409,8 @@ export default function JobsPage() {
 
           {/* Bundles Sorting Option */}
           <div className="flex items-center gap-1.5">
-            <span className="text-[9px] font-mono text-slate-500 uppercase">Sort Bundles:</span>
-            <select
+            <span className="text-[9px] font-mono text-muted uppercase">Sort Bundles:</span>
+            <select aria-label="Sort Bundles"
               value={bundleSortOption}
               onChange={(e) => setBundleSortOption(e.target.value as any)}
               className="bg-slate-900 border border-slate-800 text-slate-300 font-mono text-[10px] px-2.5 py-1.5 rounded-lg focus:border-amber-500 focus:outline-hidden cursor-pointer"
@@ -446,7 +446,7 @@ export default function JobsPage() {
           <div className="flex-1 font-mono">
             <strong>ADMIN ALARM:</strong> {overrideErr}
           </div>
-          <button onClick={() => setOverrideErr(null)} className="text-slate-500 hover:text-white cursor-pointer select-none">✕</button>
+          <button onClick={() => setOverrideErr(null)} className="text-muted hover:text-white cursor-pointer select-none">✕</button>
         </div>
       )}
 
@@ -456,13 +456,13 @@ export default function JobsPage() {
           <div className="flex-1 font-mono">
             <strong>OVERRIDE COMPLETE:</strong> {overrideOk}
           </div>
-          <button onClick={() => setOverrideOk(null)} className="text-slate-500 hover:text-white cursor-pointer select-none">✕</button>
+          <button onClick={() => setOverrideOk(null)} className="text-muted hover:text-white cursor-pointer select-none">✕</button>
         </div>
       )}
 
       {/* Jobs Accordion */}
       {filteredJobs.length === 0 ? (
-        <div className="text-center p-12 text-slate-500 font-mono text-xs border border-dashed border-slate-800 rounded-xl bg-slate-950/20">
+        <div className="text-center p-12 text-muted font-mono text-xs border border-dashed border-slate-800 rounded-xl bg-slate-950/20">
           No matches found for search string in database logs.
         </div>
       ) : (
@@ -494,7 +494,7 @@ export default function JobsPage() {
                   className="w-full flex flex-col md:flex-row md:items-center justify-between p-4 bg-slate-900/10 hover:bg-slate-900/40 text-left transition-colors cursor-pointer gap-4 border-b border-slate-950/20"
                 >
                   <div className="flex-1 min-w-0 flex items-center gap-3">
-                    <div className="h-4 w-4 text-slate-500 shrink-0">
+                    <div className="h-4 w-4 text-muted shrink-0">
                       {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                     </div>
                     <div>
@@ -546,7 +546,7 @@ export default function JobsPage() {
                     <div className="p-4 bg-slate-950/20 border-t border-slate-900 overflow-x-auto pr-1">
                       <table className="w-full text-left text-xxs font-mono tracking-wide text-slate-400 border-collapse">
                         <thead>
-                          <tr className="border-b border-slate-800 text-slate-500 uppercase tracking-widest text-[9px] font-mono font-bold">
+                          <tr className="border-b border-slate-800 text-muted uppercase tracking-widest text-[9px] font-mono font-bold">
                             <th className="pb-2.5 pl-2.5">
                               <div className="flex items-center gap-2">
                                 <input 
@@ -607,7 +607,7 @@ export default function JobsPage() {
                                         >
                                           {highlightText(b.tagId, searchVal)}
                                         </span>
-                                        <span className="text-[10px] text-slate-500">{highlightText(b.mark, searchVal)}</span>
+                                        <span className="text-[10px] text-muted">{highlightText(b.mark, searchVal)}</span>
                                       </div>
                                     </div>
                                   </td>
@@ -617,11 +617,11 @@ export default function JobsPage() {
                                     }`}>
                                       {highlightText(b.grade, searchVal)}
                                     </span>
-                                    <div className="text-xxs font-mono text-slate-500">
+                                    <div className="text-xxs font-mono text-muted">
                                       {highlightText(b.barSize, searchVal)} size • {highlightText(b.length, searchVal)}ft • {highlightText(b.weight, searchVal)} lbs
                                     </div>
                                   </td>
-                                  <td className="py-3 max-w-[180px] break-all text-slate-500" title={b.route}>
+                                  <td className="py-3 max-w-[180px] break-all text-muted" title={b.route}>
                                     {b.route.split(' -> ').slice(-2).join(' → ')}
                                   </td>
                                   <td className="py-3 font-bold text-slate-300">{highlightText(b.location, searchVal)}</td>
@@ -683,7 +683,7 @@ export default function JobsPage() {
                                         <span className="text-[10px] text-slate-400 inline-block leading-relaxed max-w-sm font-sans block">
                                           Instantly release gantry locks and load bundle {b.tagId} directly to bay doors.
                                         </span>
-                                        <div className="text-[9px] font-mono text-slate-500">
+                                        <div className="text-[9px] font-mono text-muted">
                                           * Epoxy limit: Door NW/NE • Black limit: Door 7/8 SW
                                         </div>
                                       </div>
@@ -703,7 +703,7 @@ export default function JobsPage() {
                                         )}
 
                                         {/* Door selector */}
-                                        <select
+                                        <select aria-label="Shipping door"
                                           value={selectedDoor}
                                           onChange={(e) => setSelectedDoor(e.target.value)}
                                           className="bg-slate-950 border border-slate-800 text-slate-300 rounded-lg px-2.5 py-1.5 font-mono text-[10px]"
@@ -725,7 +725,7 @@ export default function JobsPage() {
                                         </select>
   
                                         {/* Trailer size */}
-                                        <select
+                                        <select aria-label="Trailer size"
                                           value={selectedTrailer}
                                           onChange={(e) => setSelectedTrailer(e.target.value as any)}
                                           className="bg-slate-950 border border-slate-800 text-slate-300 rounded-lg px-2.5 py-1.5 font-mono text-[10px]"
