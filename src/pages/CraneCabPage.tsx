@@ -15,6 +15,7 @@ import {
   Layers,
   HelpCircle
 } from 'lucide-react';
+import { clickable } from '../utils/clickable';
 
 export default function CraneCabPage() {
   const { currentRole, currentOperator } = useApp();
@@ -234,7 +235,7 @@ export default function CraneCabPage() {
           <div className="flex-1">
             <span className="font-bold">CRANE RIGGING EXCEPTION:</span> {errorNotice}
           </div>
-          <button onClick={clearMessages} className="text-muted hover:text-white cursor-pointer select-none">✕</button>
+          <button onClick={clearMessages} aria-label="Dismiss message" className="text-muted hover:text-white cursor-pointer select-none">✕</button>
         </div>
       )}
 
@@ -244,7 +245,7 @@ export default function CraneCabPage() {
           <div className="flex-1">
             <span className="font-bold">CONE STATUS LOCKED:</span> {successNotice}
           </div>
-          <button onClick={clearMessages} className="text-muted hover:text-white cursor-pointer select-none">✕</button>
+          <button onClick={clearMessages} aria-label="Dismiss message" className="text-muted hover:text-white cursor-pointer select-none">✕</button>
         </div>
       )}
 
@@ -445,7 +446,7 @@ export default function CraneCabPage() {
                       <div>
                         <div className="flex items-center gap-1.5">
                           <span 
-                            onClick={() => setSelectedBundleForModal(b)}
+                            {...clickable(() => setSelectedBundleForModal(b))}
                             className="font-mono text-xs font-bold text-slate-200 cursor-pointer hover:underline hover:text-amber-400"
                             title="Click to audit comprehensive technical specifications and 3D bend geometry"
                           >

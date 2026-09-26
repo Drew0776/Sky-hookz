@@ -18,6 +18,7 @@ import {
   CheckCircle,
   Eye
 } from 'lucide-react';
+import { clickable } from '../utils/clickable';
 
 export default function JobsPage() {
   const { currentRole, currentOperator } = useApp();
@@ -446,7 +447,7 @@ export default function JobsPage() {
           <div className="flex-1 font-mono">
             <strong>ADMIN ALARM:</strong> {overrideErr}
           </div>
-          <button onClick={() => setOverrideErr(null)} className="text-muted hover:text-white cursor-pointer select-none">✕</button>
+          <button onClick={() => setOverrideErr(null)} aria-label="Dismiss message" className="text-muted hover:text-white cursor-pointer select-none">✕</button>
         </div>
       )}
 
@@ -456,7 +457,7 @@ export default function JobsPage() {
           <div className="flex-1 font-mono">
             <strong>OVERRIDE COMPLETE:</strong> {overrideOk}
           </div>
-          <button onClick={() => setOverrideOk(null)} className="text-muted hover:text-white cursor-pointer select-none">✕</button>
+          <button onClick={() => setOverrideOk(null)} aria-label="Dismiss message" className="text-muted hover:text-white cursor-pointer select-none">✕</button>
         </div>
       )}
 
@@ -551,6 +552,7 @@ export default function JobsPage() {
                               <div className="flex items-center gap-2">
                                 <input 
                                   type="checkbox"
+                                  aria-label="Select every bundle in this job"
                                   checked={sortedBundles.length > 0 && sortedBundles.every(b => !!selectedBundleIds[b.id])}
                                   onChange={(e) => {
                                     const checked = e.target.checked;
@@ -592,6 +594,7 @@ export default function JobsPage() {
                                     <div className="flex items-center gap-2">
                                       <input 
                                         type="checkbox"
+                                        aria-label={`Select bundle ${b.tagId}`}
                                         checked={isChecked}
                                         onChange={(e) => {
                                           const checked = e.target.checked;
@@ -601,7 +604,7 @@ export default function JobsPage() {
                                       />
                                       <div>
                                         <span 
-                                          onClick={() => setSelectedBundleForModal(b)}
+                                          {...clickable(() => setSelectedBundleForModal(b))}
                                           className="font-bold text-slate-200 block cursor-pointer hover:underline hover:text-amber-400 transition-colors"
                                           title="Click to audit comprehensive technical specifications and 3D bend geometry"
                                         >

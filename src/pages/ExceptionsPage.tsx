@@ -222,7 +222,7 @@ export default function ExceptionsPage() {
           <div className="flex-1">
             <strong>LOG ACCIDENT SYSTEM ALARM:</strong> {errMessage}
           </div>
-          <button onClick={clearAlerts} className="text-muted hover:text-white cursor-pointer select-none">✕</button>
+          <button onClick={clearAlerts} aria-label="Dismiss message" className="text-muted hover:text-white cursor-pointer select-none">✕</button>
         </div>
       )}
 
@@ -232,7 +232,7 @@ export default function ExceptionsPage() {
           <div className="flex-1 font-mono">
             <strong>FLIGHT CORRECTION LOGGED:</strong> {okMessage}
           </div>
-          <button onClick={clearAlerts} className="text-muted hover:text-white cursor-pointer select-none">✕</button>
+          <button onClick={clearAlerts} aria-label="Dismiss message" className="text-muted hover:text-white cursor-pointer select-none">✕</button>
         </div>
       )}
 

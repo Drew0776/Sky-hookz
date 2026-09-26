@@ -72,7 +72,7 @@ export default function NavBar() {
         </Link>
 
         {/* Dynamic Navigation Tabs list */}
-        <div className="hidden lg:flex items-center gap-1.5" role="navigation" aria-label="Main navigation">
+        <div className="hidden lg:flex items-center gap-1.5 xl:gap-1" role="navigation" aria-label="Main navigation">
           {visibleItems.map((item) => {
             const isActive = location === item.href;
             const Icon = item.icon;
@@ -81,27 +81,30 @@ export default function NavBar() {
                 key={item.href}
                 href={item.href}
                 aria-current={isActive ? 'page' : undefined}
-                className={`flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-mono tracking-wider transition-colors cursor-pointer ${
+                aria-label={item.label}
+                title={item.label}
+                className={`flex items-center gap-2 whitespace-nowrap rounded-lg px-3 xl:px-2 py-2 text-xs font-mono tracking-wider transition-colors cursor-pointer ${
                   isActive
                     ? 'bg-slate-900 text-amber-400 border border-slate-800'
                     : 'text-slate-400 hover:bg-slate-950 hover:text-slate-200 border border-transparent'
                 }`}
               >
-                <Icon className={`h-4 w-4 ${isActive ? 'text-amber-500' : 'text-muted'}`} />
-                <span>{item.label}</span>
+                {/* Icons with tooltips until there's room for words */}
+                <Icon className={`h-4 w-4 xl:hidden ${isActive ? 'text-amber-500' : 'text-muted'}`} aria-hidden="true" />
+                <span className="hidden xl:inline">{item.label}</span>
               </Link>
             );
           })}
         </div>
 
         {/* Integration State & Role selection switcher */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           <div className="hidden md:flex items-center gap-2">
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
             </span>
-            <span className="font-mono text-[9px] uppercase tracking-widest text-emerald-400 font-medium">SERVER LIVE</span>
+            <span className="font-mono text-[9px] uppercase tracking-widest text-emerald-400 font-medium hidden xl:inline whitespace-nowrap">SERVER LIVE</span>
           </div>
           <RoleSwitcher />
         </div>
@@ -116,13 +119,14 @@ export default function NavBar() {
             <Link
               key={item.href}
               href={item.href}
+              aria-current={isActive ? 'page' : undefined}
               className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xxs font-mono tracking-wider whitespace-nowrap transition-colors cursor-pointer ${
                 isActive
                   ? 'bg-slate-900 text-amber-400 border border-slate-800'
                   : 'text-slate-400 hover:bg-slate-950 hover:text-slate-200 border border-transparent'
               }`}
             >
-              <Icon className="h-3.5 w-3.5" />
+              <Icon className="h-3.5 w-3.5" aria-hidden="true" />
               <span>{item.label}</span>
             </Link>
           );

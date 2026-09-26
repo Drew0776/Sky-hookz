@@ -62,7 +62,7 @@ lsof -ti:3000 -sTCP:LISTEN | xargs -r kill   # stop it
 
 ```bash
 npm run lint   # tsc --noEmit
-npm test       # 22 tests: yard rules + API tests against the real Express app
+npm test       # 25 tests: yard rules, sample data, and API tests against the real Express app
 ```
 
 ## Gotchas

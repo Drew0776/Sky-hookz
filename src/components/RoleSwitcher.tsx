@@ -46,15 +46,18 @@ export default function RoleSwitcher() {
         <button
           type="button"
           id="role-switcher-button"
+          aria-label={`${currentOperator ? `${currentOperator.name} [${currentOperator.role}]` : getRoleLabel(currentRole)}: switch operator station`}
           aria-haspopup="true"
           aria-expanded={isOpen}
           onClick={() => setIsOpen(!isOpen)}
-          className="inline-flex w-full items-center justify-between gap-x-2 rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-medium text-amber-400 hover:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-amber-500/50 border border-slate-800 transition-colors cursor-pointer"
+          className="inline-flex w-full items-center justify-between gap-x-2 whitespace-nowrap rounded-lg bg-slate-900 px-3 py-2.5 text-sm font-medium text-amber-400 hover:bg-slate-800 focus:outline-hidden focus:ring-2 focus:ring-amber-500/50 border border-slate-800 transition-colors cursor-pointer"
         >
           <div className="flex items-center gap-2">
-            <Shield className="h-4 w-4 text-amber-500" />
+            <Shield className="h-4 w-4 text-amber-500" aria-hidden="true" />
             <span className="font-mono text-xs tracking-wider">
-              {currentOperator ? `${currentOperator.name} [${currentOperator.role}]` : getRoleLabel(currentRole)}
+              {currentOperator ? currentOperator.name : getRoleLabel(currentRole)}
+              {/* The role tag doesn't fit beside long names on phones */}
+              {currentOperator && <span className="hidden sm:inline"> [{currentOperator.role}]</span>}
             </span>
           </div>
           <ChevronDown className="h-4 w-4 text-slate-400 transition-transform" style={{ transform: isOpen ? 'rotate(180deg)' : 'none' }} />

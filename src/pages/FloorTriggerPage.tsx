@@ -22,6 +22,7 @@ import {
   FileDown,
   Search
 } from 'lucide-react';
+import { clickable } from '../utils/clickable';
 
 export default function FloorTriggerPage() {
   const { currentRole, currentOperator } = useApp();
@@ -790,7 +791,7 @@ export default function FloorTriggerPage() {
           <div className="flex-1">
             <span className="font-bold">FLOOR CONTROL ALARM:</span> {errorBanner}
           </div>
-          <button onClick={clearNotifications} className="text-muted hover:text-white cursor-pointer select-none">✕</button>
+          <button onClick={clearNotifications} aria-label="Dismiss message" className="text-muted hover:text-white cursor-pointer select-none">✕</button>
         </div>
       )}
 
@@ -800,7 +801,7 @@ export default function FloorTriggerPage() {
           <div className="flex-1">
             <span className="font-bold">LINE REPORT:</span> {successBanner}
           </div>
-          <button onClick={clearNotifications} className="text-muted hover:text-white cursor-pointer select-none">✕</button>
+          <button onClick={clearNotifications} aria-label="Dismiss message" className="text-muted hover:text-white cursor-pointer select-none">✕</button>
         </div>
       )}
 
@@ -1178,7 +1179,7 @@ export default function FloorTriggerPage() {
                     <div>
                       <div className="flex items-center gap-2 flex-wrap">
                         <span 
-                          onClick={() => setSelectedBundleForModal(bundle)}
+                          {...clickable(() => setSelectedBundleForModal(bundle))}
                           className="font-mono text-xs font-bold text-teal-400 cursor-pointer hover:underline hover:text-teal-300 transition-colors duration-200"
                           title="Click to audit comprehensive technical specifications and 3D bend geometry"
                         >
@@ -1239,7 +1240,7 @@ export default function FloorTriggerPage() {
                     <div className="space-y-1">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span 
-                          onClick={() => setSelectedBundleForModal(bundle)}
+                          {...clickable(() => setSelectedBundleForModal(bundle))}
                           className="font-mono text-xs font-bold text-white cursor-pointer hover:underline hover:text-amber-400 transition-colors duration-200"
                           title="Click to audit comprehensive technical specifications and 3D bend geometry"
                         >
@@ -1323,7 +1324,7 @@ export default function FloorTriggerPage() {
                       <div>
                         <div className="flex items-center gap-2 flex-wrap">
                           <span 
-                            onClick={() => setSelectedBundleForModal(bundle)}
+                            {...clickable(() => setSelectedBundleForModal(bundle))}
                             className="font-mono text-xs font-bold text-white cursor-pointer hover:underline hover:text-amber-400 block transition-colors duration-200"
                             title="Click to audit comprehensive technical specifications and 3D bend geometry"
                           >
@@ -1389,7 +1390,7 @@ export default function FloorTriggerPage() {
                     <div>
                       <div className="flex items-center gap-2 flex-wrap">
                         <span 
-                          onClick={() => setSelectedBundleForModal(bundle)}
+                          {...clickable(() => setSelectedBundleForModal(bundle))}
                           className="font-mono text-xs font-bold text-white cursor-pointer hover:underline hover:text-amber-400 transition-colors duration-200"
                           title="Click to audit comprehensive technical specifications and 3D bend geometry"
                         >

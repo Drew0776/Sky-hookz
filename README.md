@@ -44,7 +44,7 @@ npm run dev        # http://localhost:3000 (Express + Vite dev server)
 | `npm run build` | Build the client into `dist/` and bundle the server into `dist/server.cjs` |
 | `npm start` | Serve the production build from `dist/` |
 
-The yard state is kept in memory and starts from [`src/seedData.ts`](src/seedData.ts), which is fictional sample data. Restarting the server resets the yard.
+The yard state is kept in memory and starts from [`src/seedData.ts`](src/seedData.ts), which is fictional sample data. Its one-shift history is shifted to end just before server start, so times are always recent. Restarting the server resets the yard.
 
 ## API
 

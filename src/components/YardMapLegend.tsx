@@ -46,9 +46,9 @@ export default function YardMapLegend({
                 </div>
               </div>
 
-              {/* Premium Dynamic Heatmap Tooltip */}
+              {/* Premium Dynamic Heatmap Tooltip (display:none until hover, so it can't widen the page on phones) */}
               {item.info && (
-                <div className={`absolute bottom-full mb-3.5 w-64 p-3 bg-slate-950/95 border border-slate-800 rounded-xl shadow-2xl z-50 pointer-events-none opacity-0 group-hover:opacity-100 transition-all duration-200 scale-95 group-hover:scale-100 flex flex-col gap-2 font-sans text-left backdrop-blur-md ${item.tooltipAlign}`}>
+                <div className={`absolute bottom-full mb-3.5 w-64 max-w-[80vw] p-3 bg-slate-950/95 border border-slate-800 rounded-xl shadow-2xl z-50 pointer-events-none hidden group-hover:flex flex-col gap-2 font-sans text-left backdrop-blur-md ${item.tooltipAlign}`}>
                   <div className="flex items-center justify-between border-b border-slate-800 pb-1.5">
                     <span className="text-[10px] font-extrabold text-white uppercase tracking-wider">{item.name}</span>
                     <span className={`px-1.5 py-0.5 rounded text-[8px] font-mono uppercase font-bold ${item.info.statusClass}`}>
@@ -99,7 +99,7 @@ export default function YardMapLegend({
 
               {/* Premium Dynamic Machine Tooltip */}
               {item.maintenance && (
-                <div className={`absolute bottom-full mb-3.5 w-64 p-3 bg-slate-950/95 border border-slate-800 rounded-xl shadow-2xl z-50 pointer-events-none opacity-0 group-hover:opacity-100 transition-all duration-200 scale-95 group-hover:scale-100 flex flex-col gap-2 font-sans text-left backdrop-blur-md ${item.tooltipAlign}`}>
+                <div className={`absolute bottom-full mb-3.5 w-64 max-w-[80vw] p-3 bg-slate-950/95 border border-slate-800 rounded-xl shadow-2xl z-50 pointer-events-none hidden group-hover:flex flex-col gap-2 font-sans text-left backdrop-blur-md ${item.tooltipAlign}`}>
                   <div className="flex items-center justify-between border-b border-slate-800 pb-1.5">
                     <span className="text-[10px] font-extrabold text-white uppercase tracking-wider">{item.name}</span>
                     <span className={`px-1.5 py-0.5 rounded text-[8px] font-mono uppercase font-bold ${item.maintenance.statusClass}`}>
