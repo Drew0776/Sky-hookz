@@ -128,3 +128,10 @@ test('route interlocks: parked cranes on the path are critical', () => {
   assert.ok(r.hasCriticalInterlock);
   assert.deepEqual(r.obstructions.map(o => o.zoneId), ['Crane-SW']);
 });
+
+test('coated epoxy never goes back into Raw-SW; uncoated bar waiting for the coat line may', () => {
+  assert.match(gradeZoneViolation('Epoxy', 'Raw-SW', 'COATED') ?? '', /never go back into Raw-SW/);
+  assert.match(gradeZoneViolation('Epoxy', 'Raw-SW') ?? '', /never go back into Raw-SW/, 'no status means treat it as coated');
+  assert.equal(gradeZoneViolation('Black', 'Raw-SW'), null);
+  assert.equal(gradeZoneViolation('Epoxy', 'Raw-SW', 'RAW'), null, 'epoxy-ordered bar is still black steel until coated');
+});

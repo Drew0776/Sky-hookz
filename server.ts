@@ -280,7 +280,7 @@ app.post('/api/gantry/execute-route', (req, res) => {
       res.status(400).json({ error: blocked });
       return;
     }
-    const zoneError = gradeZoneViolation(targetBundle.grade, destinationId);
+    const zoneError = gradeZoneViolation(targetBundle.grade, destinationId, targetBundle.status);
     if (zoneError) {
       res.status(400).json({ error: zoneError });
       return;
@@ -501,7 +501,7 @@ app.post('/api/bundles/:bundleId/stage', (req, res) => {
     res.status(400).json({ error: blocked });
     return;
   }
-  const zoneError = gradeZoneViolation(bundle.grade, location);
+  const zoneError = gradeZoneViolation(bundle.grade, location, bundle.status);
   if (zoneError) {
     res.status(400).json({ error: zoneError });
     return;
@@ -578,7 +578,7 @@ app.post('/api/bundles/:bundleId/drop', (req, res) => {
   }
 
   // Black bar stays SW; epoxy stays out of black-bar racks and SW shipping doors
-  const zoneError = gradeZoneViolation(bundle.grade, location);
+  const zoneError = gradeZoneViolation(bundle.grade, location, bundle.status);
   if (zoneError) {
     res.status(400).json({ error: zoneError });
     return;
@@ -672,7 +672,7 @@ app.post('/api/bundles/:bundleId/force-load', (req, res) => {
   }
 
   // Material zone rules check
-  const zoneError = gradeZoneViolation(bundle.grade, door);
+  const zoneError = gradeZoneViolation(bundle.grade, door, bundle.status);
   if (zoneError) {
     res.status(400).json({
       error: bundle.grade === 'Black'

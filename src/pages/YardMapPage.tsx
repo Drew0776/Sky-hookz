@@ -285,7 +285,7 @@ export default function YardMapPage() {
     const blocked = movementBlockedReason(routeBundle);
     if (blocked) routeRuleIssues.push(blocked);
     if (routeDestination.startsWith('Crane-')) routeRuleIssues.push('A gantry position is not a place to set a bundle down.');
-    const zoneError = gradeZoneViolation(routeBundle.grade, routeDestination);
+    const zoneError = gradeZoneViolation(routeBundle.grade, routeDestination, routeBundle.status);
     if (zoneError) routeRuleIssues.push(zoneError);
     const conflict = slottingConflict(routeBundle, routeDestination, bundles);
     if (conflict) routeRuleIssues.push(`Bundle ${conflict.tagId} at ${routeDestination} ships sooner (${new Date(conflict.shippingDate).toLocaleDateString()}) and would be buried.`);

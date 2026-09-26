@@ -53,14 +53,22 @@ export const isProcessingStation = (location: string): boolean =>
 export const isSwBlackStorage = (location: string): boolean =>
   location === 'Raw-SW' || SW_SHIPPING_DOORS.includes(location) || isBlackBarRack(location);
 
-/** Why a bundle of `grade` may not be placed at `location`, or null when it may. */
-export function gradeZoneViolation(grade: RebarGrade, location: string): string | null {
+/**
+ * Why a bundle of `grade` may not be placed at `location`, or null when it may.
+ * Black and epoxy are never mixed. All bar arrives black at Raw-SW and most of it is coated,
+ * so epoxy-ordered bar still in RAW status is black steel and may sit at Raw-SW; once coated
+ * (any other status, or no status given) it never goes back into a black-bar area.
+ */
+export function gradeZoneViolation(grade: RebarGrade, location: string, status?: string): string | null {
   if (grade === 'Black') {
     if (isSwBlackStorage(location) || isProcessingStation(location)) return null;
     return 'CRITICAL: Black (non-epoxy) bar is SW-only. Store it at Raw-SW, Door-7/8 or racks J-19 to J-25 and L-6 to L-10, or send it to a shear, bender or the coat line.';
   }
   if (isBlackBarRack(location)) {
     return 'CRITICAL: Epoxy bar cannot be stored in Black-bar SW racks.';
+  }
+  if (location === 'Raw-SW' && status !== 'RAW') {
+    return 'CRITICAL: Coated epoxy bar must never go back into Raw-SW black-bar stock. Only uncoated bar waiting for the coat line belongs there.';
   }
   if (SW_SHIPPING_DOORS.includes(location)) {
     return 'CRITICAL: Epoxy bar must be shipped from NW/NE doors (Door-1, Door-2, Door-3, North-End).';

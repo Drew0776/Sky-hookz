@@ -169,3 +169,9 @@ test('request bodies must carry text where the screens expect text', async () =>
   const blank = await call('POST', '/api/exceptions', { tagId: '   ', operatorName: 'QC', type: 'Misplaced Bar', description: 'x' });
   assert.equal(blank.status, 400, 'a blank-but-spaces tag counts as missing');
 });
+
+test('a coated epoxy bundle cannot be set down in Raw-SW black-bar stock', async () => {
+  const r = await call('POST', '/api/bundles/TG-104/drop', { location: 'Raw-SW' });
+  assert.equal(r.status, 400);
+  assert.match(r.json.error, /never go back into Raw-SW/);
+});
