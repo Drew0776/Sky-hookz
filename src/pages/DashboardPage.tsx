@@ -3,6 +3,7 @@ import { useApp } from '../context/AppContext';
 import { Bundle, DashboardMetrics, Job } from '../types';
 import { INITIAL_BUNDLES, INITIAL_JOBS } from '../seedData';
 import PageLoader from '../components/PageLoader';
+import { computeDashboardMetrics, UV_GUIDANCE } from '../yardRules';
 import { 
   BarChart,
   Bar,
@@ -40,56 +41,8 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedSector, setSelectedSector] = useState<string | null>(null);
 
-  const calculateFallbackMetrics = (bList: Bundle[], jList: Job[]): DashboardMetrics => {
-    const bendingCount = bList.filter(b => b.status === 'BENDING').length;
-    const totalActiveJobs = jList.filter(j => j.completedBundles < j.totalBundles).length;
-    const stagedCount = bList.filter(b => b.status === 'STAGED').length;
-    const loadedCount = bList.filter(b => b.status === 'LOADED').length;
-    const rackedCount = bList.filter(b => b.status === 'RACKED').length;
-    const rejectedCount = bList.filter(b => b.status === 'REJECTED').length;
-
-    // UV Hazards helper for outdoor zone checking
-    const isOutdoorZoneFallback = (zoneId: string): boolean => {
-      if (!zoneId) return false;
-      const zid = zoneId.toLowerCase();
-      return zid.includes('rack') || zid.includes('door') || zid.includes('north-end') || zid.includes('stock') || zid.includes('raw') || zid.includes('crane');
-    };
-
-    const uvHazardsCount = bList.filter(b => {
-      if (!b.isEpoxy || !b.stagedAt) return false;
-      if (!isOutdoorZoneFallback(b.location)) return false;
-      const days = (Date.now() - new Date(b.stagedAt).getTime()) / (1000 * 60 * 60 * 24);
-      return days >= 25;
-    }).length;
-
-    let firstShiftWeight = 0;
-    let secondShiftWeight = 0;
-
-    bList.filter(b => b.status === 'LOADED').forEach(b => {
-      const date = new Date(b.updatedAt);
-      const hour = date.getUTCHours() + date.getUTCMinutes() / 60;
-      if (hour >= 6 && hour < 16.5) {
-        firstShiftWeight += b.weight;
-      } else {
-        secondShiftWeight += b.weight;
-      }
-    });
-
-    const firstShiftThroughput = Math.round((firstShiftWeight / 2000) * 10) / 10;
-    const secondShiftThroughput = Math.round((secondShiftWeight / 2000) * 10) / 10;
-
-    return {
-      bendingCount,
-      totalActiveJobs,
-      stagedCount,
-      loadedCount,
-      rackedCount,
-      rejectedCount,
-      uvHazardsCount,
-      firstShiftThroughput,
-      secondShiftThroughput
-    };
-  };
+  // Same calculation the server's /api/dashboard uses
+  const calculateFallbackMetrics = (bList: Bundle[], jList: Job[]): DashboardMetrics => computeDashboardMetrics(bList, jList);
 
   const fetchDashboardData = async () => {
     try {
@@ -302,7 +255,7 @@ export default function DashboardPage() {
               <div className="space-y-1">
                 <div className="font-bold text-amber-500 uppercase tracking-wider text-[10px]">UV EXPOSURE HAZARD WARNING</div>
                 <p className="text-slate-300 font-sans leading-normal">
-                  There are currently <span className="font-bold text-white text-xs">{metrics.uvHazardsCount}</span> epoxy bundle(s) residing outdoors for <span className="font-bold text-amber-400">25+ days</span>. ASTM standards mandate shielding with opaque materials within 30 days to prevent ultraviolet degradation.
+                  There are currently <span className="font-bold text-white text-xs">{metrics.uvHazardsCount}</span> coated epoxy bundle(s) outdoors for <span className="font-bold text-amber-400">25+ days</span>. Cover them with opaque material before day 30. {UV_GUIDANCE}
                 </p>
               </div>
             </div>
@@ -331,7 +284,7 @@ export default function DashboardPage() {
                 <div className="text-3xl font-mono font-bold text-amber-500">{metrics.firstShiftThroughput} <span className="text-xs text-slate-400 leading-none">TONS</span></div>
                 <div className="text-[10px] text-slate-500 font-mono">Hours 06:00 – 16:30</div>
               </div>
-              <div className="space-y-1 border-l border-slate-850 pl-4">
+              <div className="space-y-1 border-l border-slate-800 pl-4">
                 <div className="text-xxs text-slate-500 font-mono uppercase tracking-widest">2nd Shift Throughput</div>
                 <div className="text-3xl font-mono font-bold text-sky-400">{metrics.secondShiftThroughput} <span className="text-xs text-slate-400 leading-none">TONS</span></div>
                 <div className="text-[10px] text-slate-500 font-mono">Hours 16:30 – 03:00</div>
@@ -368,7 +321,7 @@ export default function DashboardPage() {
 
           {/* S2. Visual SVG Job Tonnage Distribution Chart */}
           <div className="bg-slate-900/40 border border-slate-800/80 rounded-2xl p-5 space-y-4">
-            <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-350 flex items-center gap-1.5">
+            <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
               <span>📊 Active Job Floor Tonnage Breakdown</span>
             </h3>
 
@@ -482,7 +435,7 @@ export default function DashboardPage() {
             <div>
               <span className="text-[10px] uppercase font-mono tracking-wider text-slate-500">Live Density Heatmap</span>
               <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-200">INTERACTIVE YARD STATUS & HEATMAP FILTER</h3>
-              <p className="text-[11px] text-slate-450 font-sans mt-1">
+              <p className="text-[11px] text-slate-400 font-sans mt-1">
                 Click on any sector block below to filter and inspect active manufacturing stock, weights, and detailed bundle specs within that zone.
               </p>
             </div>
@@ -510,15 +463,15 @@ export default function DashboardPage() {
                     type="button"
                     onClick={() => setSelectedSector(active ? null : sector.id)}
                     className={`p-3.5 rounded-xl text-left border flex flex-col justify-between transition-all duration-300 bg-linear-to-b cursor-pointer ${sector.color} ${
-                      active ? sector.activeColor : 'hover:bg-slate-850/40 hover:border-slate-700'
+                      active ? sector.activeColor : 'hover:bg-slate-800/40 hover:border-slate-700'
                     }`}
                   >
                     <div>
                       <div className="flex items-center gap-1.5">
                         <span className={`h-1.5 w-1.5 rounded-full ${sector.indicatorColor} ${active ? 'animate-ping' : ''}`} />
-                        <span className="text-[9px] uppercase font-mono font-black border-b border-slate-750/30 leading-none select-none">{sector.id.replace('-', ' ').toUpperCase()}</span>
+                        <span className="text-[9px] uppercase font-mono font-black border-b border-slate-700/30 leading-none select-none">{sector.id.replace('-', ' ').toUpperCase()}</span>
                       </div>
-                      <p className="text-[9px] text-slate-350 font-mono mt-1.5 leading-normal">{sector.name}</p>
+                      <p className="text-[9px] text-slate-300 font-mono mt-1.5 leading-normal">{sector.name}</p>
                     </div>
                     
                     <div className="mt-4">
@@ -709,7 +662,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="bg-slate-950 p-4 rounded-xl border border-slate-850 text-center">
+          <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 text-center">
             <span className="text-[9px] font-mono text-slate-500 tracking-wider block uppercase">Material Compliance Guard</span>
             <p className="text-[10px] font-sans text-slate-400 leading-normal mt-1.5 max-w-[240px] mx-auto">
               Any displacement of Black non-epoxy rebar packages beyond the SW quadrant will trigger immediate terminal alarms.

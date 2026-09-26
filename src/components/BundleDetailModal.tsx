@@ -18,6 +18,7 @@ import {
   Bookmark,
   TrendingUp
 } from 'lucide-react';
+import { daysOutdoors, UV_COVER_BY_DAYS, UV_GUIDANCE, UV_WARNING_DAYS } from '../yardRules';
 
 interface BundleDetailModalProps {
   bundle: Bundle | null;
@@ -636,21 +637,19 @@ export default function BundleDetailModal({ bundle, onClose }: BundleDetailModal
             )}
 
             {(() => {
-              const isOutdoor = bundle.location.startsWith('Rack') || bundle.location.startsWith('Door') || bundle.location === 'Raw-SW' || bundle.location === 'North-End';
-              if (bundle.isEpoxy && isOutdoor && bundle.stagedAt) {
-                const days = Math.round((Date.now() - new Date(bundle.stagedAt).getTime()) / (1000 * 60 * 60 * 24));
-                if (days >= 25) {
-                  return (
-                    <div className="bg-amber-500/10 border border-amber-500/30 p-4 rounded-xl text-xxs font-mono text-amber-400 space-y-2 animate-pulse">
-                      <div className="font-bold uppercase tracking-wider text-[10px] flex items-center gap-1.5 text-amber-500">
-                        ☀️ UV HAZARD EXPOSURE ALERT
-                      </div>
-                      <div>
-                        This epoxy-coated bundle has been exposed outdoors for <span className="font-bold text-white text-xs">{days} days</span>. ASTM guidelines require covering with an opaque material within 30 days to prevent chemical ultraviolet degradation.
-                      </div>
+              const days = daysOutdoors(bundle);
+              if (days !== null && days >= UV_WARNING_DAYS) {
+                const shownDays = Math.floor(days);
+                return (
+                  <div className="bg-amber-500/10 border border-amber-500/30 p-4 rounded-xl text-xxs font-mono text-amber-400 space-y-2 animate-pulse">
+                    <div className="font-bold uppercase tracking-wider text-[10px] flex items-center gap-1.5 text-amber-500">
+                      ☀️ UV HAZARD EXPOSURE ALERT
                     </div>
-                  );
-                }
+                    <div>
+                      This epoxy-coated bundle has been outdoors for <span className="font-bold text-white text-xs">{shownDays} days</span>. Cover it with opaque material{shownDays < UV_COVER_BY_DAYS ? ` within ${UV_COVER_BY_DAYS - shownDays} days` : ' now'}. {UV_GUIDANCE}
+                    </div>
+                  </div>
+                );
               }
               return null;
             })()}
@@ -674,7 +673,7 @@ export default function BundleDetailModal({ bundle, onClose }: BundleDetailModal
               <div className="bg-slate-950 border border-slate-900 rounded-xl divide-y divide-slate-900 overflow-hidden">
                 <div className="p-3 bg-slate-900/20 grid grid-cols-2 text-xxs font-mono text-slate-500 uppercase">
                   <span>Specification</span>
-                  <span className="text-right">Acoustic / Physical Value</span>
+                  <span className="text-right">Value</span>
                 </div>
 
                 <div className="p-3 grid grid-cols-2 text-xxs font-mono">

@@ -1,8 +1,24 @@
 import express from 'express';
+import type { Response } from 'express';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
-import { Bundle, Job, Operator, Exception, ShiftMessage, ActivityEvent, TrailerSize } from './src/types';
+import { Bundle, BundleStatus, Job, Operator, Exception, ShiftMessage, ActivityEvent, TrailerSize } from './src/types';
 import { INITIAL_BUNDLES, INITIAL_JOBS, INITIAL_OPERATORS, INITIAL_EXCEPTIONS, INITIAL_SHIFT_MESSAGES, INITIAL_ACTIVITY } from './src/seedData';
+import { zoneCoords } from './src/pages/yardMapData';
+import { getRouteAnalysisByZones } from './src/utils/yardMath';
+import {
+  MAX_ZONE_CAPACITY_LBS,
+  MIN_ZONE_CAPACITY_LBS,
+  SHIPPING_DOORS,
+  computeDashboardMetrics,
+  gradeZoneViolation,
+  isValidYardLocation,
+  movementBlockedReason,
+  slottingConflict,
+  slottingViolationMessage,
+  stagedAtAfterMove,
+  statusAfterDrop
+} from './src/yardRules';
 
 // Store state in-memory so modifications persist during runtime
 let bundles: Bundle[] = [...INITIAL_BUNDLES];
@@ -11,9 +27,11 @@ let operators: Operator[] = [...INITIAL_OPERATORS];
 let exceptions: Exception[] = [...INITIAL_EXCEPTIONS];
 let shiftMessages: ShiftMessage[] = [...INITIAL_SHIFT_MESSAGES];
 let activityEvents: ActivityEvent[] = [...INITIAL_ACTIVITY];
+// Per-zone storage limits set from the yard map; zones without an entry use DEFAULT_ZONE_CAPACITY_LBS
+let zoneCapacities: Record<string, number> = {};
 
 // Active Server-Sent Events (SSE) Client Connections
-let sseClients: any[] = [];
+let sseClients: Response[] = [];
 
 // Helper to push state changes in real-time to all subscribed operators
 function notifyClients() {
@@ -25,6 +43,7 @@ function notifyClients() {
       exceptions,
       shiftMessages,
       activityEvents,
+      zoneCapacities,
     }
   });
   sseClients.forEach(client => {
@@ -36,146 +55,14 @@ function notifyClients() {
   });
 }
 
-// Facility zone coordinates registry replicated on backend for safety validation
-const zoneCoords: Record<string, { cx: number; cy: number; cw: number; ch: number; label: string }> = {
-  'Crane-NW': { cx: 32, cy: 52, cw: 135, ch: 60, label: 'GANTRY NW' },
-  'Rack J-04': { cx: 180, cy: 52, cw: 135, ch: 60, label: 'RACK J-04' },
-  'Rack J-12': { cx: 328, cy: 52, cw: 135, ch: 60, label: 'RACK J-12' },
-  'Door-1': { cx: 106, cy: 125, cw: 135, ch: 65, label: 'DOOR-1 BAY' },
-  'Door-2': { cx: 254, cy: 125, cw: 135, ch: 65, label: 'DOOR-2 BAY' },
-  'Crane-NE': { cx: 833, cy: 52, cw: 135, ch: 60, label: 'GANTRY NE' },
-  'Rack K-1': { cx: 685, cy: 52, cw: 135, ch: 60, label: 'RACK K-1' },
-  'Rack K-2': { cx: 537, cy: 52, cw: 135, ch: 60, label: 'RACK K-2' },
-  'Door-3': { cx: 611, cy: 125, cw: 135, ch: 65, label: 'DOOR-3 BAY' },
-  'North-End': { cx: 759, cy: 125, cw: 135, ch: 65, label: 'NORTH-END' },
-  'Coat-Station': { cx: 32, cy: 242, cw: 215, ch: 50, label: 'COAT TUNNEL' },
-  'Shear-North': { cx: 267, cy: 242, cw: 220, ch: 50, label: 'SHEAR NORTH' },
-  'Shear-Center': { cx: 512, cy: 242, cw: 220, ch: 50, label: 'SHEAR CENTER' },
-  'Shear-South': { cx: 757, cy: 242, cw: 215, ch: 50, label: 'SHEAR SOUTH' },
-  'Raw-SW': { cx: 32, cy: 345, cw: 135, ch: 65, label: 'STOCK SW' },
-  'Crane-SW': { cx: 180, cy: 345, cw: 135, ch: 65, label: 'CRANE SW' },
-  'Rack J-19': { cx: 328, cy: 345, cw: 135, ch: 65, label: 'RACK J-19' },
-  'Rack L-8': { cx: 32, cy: 422, cw: 135, ch: 65, label: 'RACK L-8' },
-  'Door-7': { cx: 180, cy: 422, cw: 135, ch: 65, label: 'DOOR-7 BAY' },
-  'Door-8': { cx: 328, cy: 422, cw: 135, ch: 65, label: 'DOOR-8 BAY' },
-  'Crane-SE': { cx: 527, cy: 345, cw: 135, ch: 65, label: 'GANTRY SE' },
-  'Rack J-15': { cx: 675, cy: 345, cw: 135, ch: 65, label: 'RACK J-15' },
-  'Rack L-1': { cx: 823, cy: 345, cw: 135, ch: 65, label: 'RACK L-1' },
-  'Bender-New-Robo': { cx: 601, cy: 422, cw: 135, ch: 65, label: 'NEW-ROBO CNC' },
-  'Bender-11-Bender': { cx: 749, cy: 422, cw: 135, ch: 65, label: '11-BENDER' }
-};
-
-interface BackendObstruction {
-  zoneId: string;
-  name: string;
-  type: 'CRITICAL' | 'CONSTRAINT' | 'PROXIMITY';
-  reason: string;
-  desc: string;
-}
-
-function getBackendRouteObstructions(
-  originId: string,
-  destinationId: string,
-  materialClass: 'ALL' | 'Epoxy' | 'Black',
-  bundlesData: Bundle[],
-  zoneCapacities: Record<string, number>,
-  windSpeed: number,
-  ropeSway: number,
-  bundleLength: number
-): BackendObstruction[] {
-  const origin = zoneCoords[originId];
-  const dest = zoneCoords[destinationId];
-  if (!origin || !dest) return [];
-
-  const x1 = origin.cx + origin.cw / 2;
-  const y1 = origin.cy + origin.ch / 2;
-  const x2 = dest.cx + dest.cw / 2;
-  const y2 = dest.cy + dest.ch / 2;
-
-  const overlap = (minA: number, maxA: number, minB: number, maxB: number) => {
-    return Math.max(minA, minB) <= Math.min(maxA, maxB);
-  };
-
-  const obstructions: BackendObstruction[] = [];
-
-  // Identify if routing bundle is ASTM A934 (prioritized zero-laydown purple epoxy)
-  const targetBundle = bundlesData.find(b => b.location === originId);
-  const isA934Prioritized = targetBundle?.specification === 'ASTM_A934';
-
-  // Simple static thresholds for stacking capacity
-  const hazardThreshold = 0.85; // 85% capacity is a critical overload
-  const warningThreshold = 0.60; // 60% capacity is elevated
-
-  Object.keys(zoneCoords).forEach((zoneId) => {
-    if (zoneId === originId || zoneId === destinationId) return;
-
-    const zone = zoneCoords[zoneId];
-    const zLeft = zone.cx;
-    const zRight = zone.cx + zone.cw;
-    const zTop = zone.cy;
-    const zBottom = zone.cy + zone.ch;
-
-    // Horiz segment (x1, y1) to (x2, y1)
-    const minX = Math.min(x1, x2);
-    const maxX = Math.max(x1, x2);
-    const intersectsHoriz = y1 >= zTop && y1 <= zBottom && overlap(minX, maxX, zLeft, zRight);
-
-    // Vert segment (x2, y1) to (x2, y2)
-    const minY = Math.min(y1, y2);
-    const maxY = Math.max(y1, y2);
-    const intersectsVert = x2 >= zLeft && x2 <= zRight && overlap(minY, maxY, zTop, zBottom);
-
-    if (intersectsHoriz || intersectsVert) {
-      const bInZone = bundlesData.filter(b => b.location === zoneId);
-      const weight = bInZone.reduce((sum, b) => sum + (b.weight || 0), 0);
-      const limit = zoneCapacities[zoneId] || 75000;
-      const ratio = weight / limit;
-
-      // 1. Shared Rail Crane obstruction
-      const isCraneType = zoneId.toLowerCase().includes('crane');
-      if (isCraneType) {
-        obstructions.push({
-          zoneId,
-          name: zone.label,
-          type: 'CRITICAL',
-          reason: 'SHARED RAIL OCCUPANCY',
-          desc: `Secondary handling equipment is currently located at ${zone.label}. Please confirm gantry path clearance.`
-        });
-        return;
-      }
-
-      // 2. Dynamic Stack Clearance Check
-      if (ratio >= hazardThreshold) {
-        obstructions.push({
-          zoneId,
-          name: zone.label,
-          type: 'CRITICAL',
-          reason: 'MAX STORAGE CAPACITY EXCEEDED',
-          desc: `Zone ${zone.label} is near maximum storage density (${weight.toLocaleString()} lbs, ${(ratio*100).toFixed(0)}% capacity). High stacks violate overhead clearance drop guidelines.`
-        });
-        return;
-      } else if (ratio >= warningThreshold) {
-        // ASTM A934 waives slow-speed warnings because it flies in a prioritized zero-laydown direct corridor!
-        if (!isA934Prioritized) {
-          obstructions.push({
-            zoneId,
-            name: zone.label,
-            type: 'CONSTRAINT',
-            reason: 'HIGH LOAD DENSITY',
-            desc: `Elevated pile mass density (${weight.toLocaleString()} lbs, ${(ratio*100).toFixed(0)}% capacity). Gantry crane must operate in cautionary slow-speed mode.`
-          });
-        }
-      }
-    }
-  });
-
-  return obstructions;
-}
+// Unique ids even when several records are created in the same millisecond
+let idCounter = 0;
+const nextId = (prefix: string) => `${prefix}-${Date.now()}-${++idCounter}`;
 
 // Helper to log dynamic activity events
 function logActivity(tagId: string, operatorName: string, action: string, fromLoc: string, toLoc: string, details?: string) {
   const newEvent: ActivityEvent = {
-    id: `AC-${Date.now()}`,
+    id: nextId('AC'),
     timestamp: new Date().toISOString(),
     tagId,
     operatorName,
@@ -186,6 +73,33 @@ function logActivity(tagId: string, operatorName: string, action: string, fromLo
   };
   activityEvents.unshift(newEvent);
   return newEvent;
+}
+
+function refreshJobProgress(jobId: string) {
+  const job = jobs.find(j => j.id === jobId);
+  if (!job) return;
+  const completed = bundles.filter(b => b.jobId === job.id && b.status === 'LOADED').length;
+  job.completedBundles = Math.min(job.totalBundles, completed);
+}
+
+/** Moves a bundle and keeps its status, door, outdoor clock and job progress consistent. */
+function placeBundle(bundle: Bundle, location: string, status: BundleStatus) {
+  const now = new Date().toISOString();
+  bundle.stagedAt = stagedAtAfterMove(bundle, location, now);
+  bundle.location = location;
+  bundle.status = status;
+  if (status === 'LOADED') {
+    bundle.door = location;
+  } else {
+    bundle.door = undefined;
+    bundle.trailerSize = undefined;
+  }
+  bundle.updatedAt = now;
+  refreshJobProgress(bundle.jobId);
+}
+
+function findBundle(bundleId: string) {
+  return bundles.find(b => b.id === bundleId);
 }
 
 const app = express();
@@ -215,27 +129,69 @@ app.get('/api/updates', (req, res) => {
   });
 });
 
+// GET /api/zone-capacities
+app.get('/api/zone-capacities', (req, res) => {
+  res.json(zoneCapacities);
+});
+
+// PUT /api/zone-capacities/:zoneId  { capacity: number | null }  (null restores the default)
+app.put('/api/zone-capacities/:zoneId', (req, res) => {
+  const { zoneId } = req.params;
+  const { capacity } = req.body;
+  if (!zoneCoords[zoneId] || zoneId.startsWith('Crane-')) {
+    res.status(400).json({ error: `Unknown storage zone "${zoneId}".` });
+    return;
+  }
+  if (capacity === null) {
+    delete zoneCapacities[zoneId];
+  } else {
+    const value = Number(capacity);
+    if (!Number.isFinite(value) || value < MIN_ZONE_CAPACITY_LBS || value > MAX_ZONE_CAPACITY_LBS) {
+      res.status(400).json({ error: `Capacity must be between ${MIN_ZONE_CAPACITY_LBS.toLocaleString()} and ${MAX_ZONE_CAPACITY_LBS.toLocaleString()} lbs.` });
+      return;
+    }
+    zoneCapacities = { ...zoneCapacities, [zoneId]: Math.round(value) };
+  }
+  notifyClients();
+  res.json(zoneCapacities);
+});
+
 // POST /api/gantry/execute-route
 app.post('/api/gantry/execute-route', (req, res) => {
-  const { originId, destinationId, materialClass, windSpeed, ropeSway, bundleLength, operatorName } = req.body;
+  const { originId, destinationId, bundleId, operatorName } = req.body;
   if (!originId || !destinationId) {
     res.status(400).json({ error: 'Origin and destination sector IDs are required.' });
     return;
   }
+  if (!zoneCoords[originId] || !zoneCoords[destinationId]) {
+    res.status(400).json({ error: 'Origin and destination must be zones on the yard map.' });
+    return;
+  }
+  if (originId === destinationId) {
+    res.status(400).json({ error: 'Origin and destination are the same zone.' });
+    return;
+  }
+
+  // The bundle being carried: the one the operator picked, or the first bundle resting at the origin
+  let targetBundle: Bundle | undefined;
+  if (bundleId) {
+    targetBundle = findBundle(bundleId);
+    if (!targetBundle || targetBundle.location !== originId) {
+      res.status(400).json({ error: `Bundle ${bundleId} is not at ${originId}.` });
+      return;
+    }
+  } else {
+    targetBundle = bundles.find(b => b.location === originId);
+  }
+
+  if (targetBundle && destinationId.startsWith('Crane-')) {
+    res.status(400).json({ error: 'A gantry position is not a place to set a bundle down.' });
+    return;
+  }
 
   // Enforce server-side security interlock validation
-  const obstructions = getBackendRouteObstructions(
-    originId,
-    destinationId,
-    materialClass || 'ALL',
-    bundles,
-    {},
-    windSpeed || 8,
-    ropeSway || 3,
-    bundleLength || 30
-  );
-
-  const criticalIssues = obstructions.filter(obs => obs.type === 'CRITICAL');
+  const analysis = getRouteAnalysisByZones(originId, destinationId, bundles, zoneCapacities, targetBundle?.id);
+  const criticalIssues = analysis.obstructions.filter(obs => obs.type === 'CRITICAL');
   if (criticalIssues.length > 0) {
     res.status(400).json({
       error: `CRITICAL INTERLOCK TRIGGERED: Safety bypass prohibited. Movement from "${originId}" to "${destinationId}" blocked due to: ${criticalIssues.map(c => c.reason).join(', ')}`
@@ -243,55 +199,38 @@ app.post('/api/gantry/execute-route', (req, res) => {
     return;
   }
 
-  // Find a bundle currently resting at the origin zone
-  const targetBundle = bundles.find(b => b.location === originId);
   if (targetBundle) {
+    const blocked = movementBlockedReason(targetBundle);
+    if (blocked) {
+      res.status(400).json({ error: blocked });
+      return;
+    }
+    const zoneError = gradeZoneViolation(targetBundle.grade, destinationId);
+    if (zoneError) {
+      res.status(400).json({ error: zoneError });
+      return;
+    }
     // Evaluate Dynamic Slotting for Intelligent Crane Sequencing
-    const existingBundles = bundles.filter(b => b.location === destinationId && b.id !== targetBundle.id);
-    if (existingBundles.length > 0) {
-      const newShipping = new Date(targetBundle.shippingDate).getTime();
-      const conflict = existingBundles.find(e => new Date(e.shippingDate).getTime() < newShipping);
-      if (conflict) {
-        res.status(400).json({
-          error: `CRITICAL DYNAMIC SLOTTING VIOLATION: Stacking bundle ${targetBundle.tagId} (ships ${new Date(targetBundle.shippingDate).toLocaleDateString()}) on top of bundle ${conflict.tagId} (ships sooner: ${new Date(conflict.shippingDate).toLocaleDateString()}) at ${destinationId} is blocked to prevent extra crane picks and epoxy scraping.`
-        });
-        return;
-      }
+    const conflict = slottingConflict(targetBundle, destinationId, bundles);
+    if (conflict) {
+      res.status(400).json({ error: slottingViolationMessage(targetBundle, conflict, destinationId) });
+      return;
     }
 
     const oldLoc = targetBundle.location;
-    targetBundle.location = destinationId;
-    targetBundle.updatedAt = new Date().toISOString();
+    placeBundle(targetBundle, destinationId, statusAfterDrop(destinationId));
 
-    // Re-determine status based on destination layout
-    if (destinationId.startsWith('Rack')) {
-      targetBundle.status = 'RACKED';
-    } else if (destinationId.startsWith('Door')) {
-      targetBundle.status = 'LOADED';
-      targetBundle.door = destinationId;
-    } else if (destinationId === 'Coat-Station') {
-      targetBundle.status = 'COATED';
-    } else {
-      targetBundle.status = 'STAGED';
-    }
-
+    const slowZones = analysis.obstructions.filter(obs => obs.type === 'CONSTRAINT').map(obs => obs.name);
     logActivity(
       targetBundle.tagId,
       operatorName || 'Gantry Automations',
       'GANTRY_MOVE',
       oldLoc,
       destinationId,
-      `Operational route executed successfully. Dynamic safety buffer cleared.`
+      slowZones.length
+        ? `Route executed in slow mode past ${slowZones.join(', ')}. Predicted ${analysis.predictedTime.toFixed(1)} s.`
+        : `Operational route executed successfully. Predicted ${analysis.predictedTime.toFixed(1)} s.`
     );
-
-    // If loaded, update associated job summaries
-    if (targetBundle.status === 'LOADED') {
-      const parentJob = jobs.find(j => j.id === targetBundle.jobId);
-      if (parentJob) {
-        const completed = bundles.filter(b => b.jobId === parentJob.id && b.status === 'LOADED').length;
-        parentJob.completedBundles = Math.min(parentJob.totalBundles, completed);
-      }
-    }
 
     notifyClients();
     res.json({
@@ -334,6 +273,24 @@ app.get('/api/bundles', (req, res) => {
   res.json(bundles);
 });
 
+// GET /api/mill-certs/:heatNumber  (heat record behind a bundle's "View cert" link)
+app.get('/api/mill-certs/:heatNumber', (req, res) => {
+  const heatBundles = bundles.filter(b => b.heatNumber === req.params.heatNumber);
+  if (heatBundles.length === 0) {
+    res.status(404).json({ error: `No bundles from heat ${req.params.heatNumber}.` });
+    return;
+  }
+  const first = heatBundles[0];
+  res.json({
+    heatNumber: first.heatNumber,
+    specification: first.specification.replace('ASTM_', 'ASTM '),
+    grade: first.grade,
+    plantLocation: first.plantLocation,
+    bundles: heatBundles.map(b => ({ tagId: b.tagId, jobId: b.jobId, barSize: b.barSize, lengthFt: b.length, weightLbs: b.weight })),
+    note: 'Heat record from SkyHook yard data. Attach the mill\'s certified test report for this heat to complete the certificate.'
+  });
+});
+
 // GET /api/operators
 app.get('/api/operators', (req, res) => {
   res.json(operators);
@@ -356,16 +313,19 @@ app.post('/api/exceptions', (req, res) => {
     res.status(400).json({ error: 'Missing required parameters' });
     return;
   }
-  
-  let finalDescription = description;
-  let qcRejected = false;
 
+  let finalDescription = description;
   const bundle = bundles.find(b => b.tagId === tagId);
 
+  let damagePct: number | undefined;
   if (type === 'Quality Audit' && qualityAudit) {
-    const damagePct = Number(qualityAudit.coatingDamagePct);
+    damagePct = Number(qualityAudit.coatingDamagePct);
+    if (!Number.isFinite(damagePct) || damagePct < 0 || damagePct > 100) {
+      res.status(400).json({ error: 'Coating damage must be a percentage between 0 and 100.' });
+      return;
+    }
+    // ASTM limit: damaged coating may not exceed 2% of the surface area in any 1-foot length
     if (damagePct > 2) {
-      qcRejected = true;
       finalDescription = `${description} [AUTOMATIC ASTM REJECTION: Visible coating damage of ${damagePct}% exceeds the 2% maximum allowable limit in the 1-foot section: ${qualityAudit.damagedFootSection}.]`;
       if (bundle) {
         bundle.status = 'REJECTED';
@@ -383,21 +343,21 @@ app.post('/api/exceptions', (req, res) => {
   }
 
   const newEx: Exception = {
-    id: `EX-${Date.now()}`,
+    id: nextId('EX'),
     timestamp: new Date().toISOString(),
     tagId,
     operatorName,
     type,
     description: finalDescription,
     status: 'OPEN',
-    qualityAudit: qualityAudit ? {
-      coatingDamagePct: Number(qualityAudit.coatingDamagePct),
+    qualityAudit: qualityAudit && damagePct !== undefined ? {
+      coatingDamagePct: damagePct,
       damagedFootSection: qualityAudit.damagedFootSection,
       inspectorName: operatorName,
       inspectionDate: new Date().toISOString().split('T')[0]
     } : undefined
   };
-  
+
   exceptions.unshift(newEx);
   notifyClients();
   res.status(201).json(newEx);
@@ -431,10 +391,14 @@ app.post('/api/shift-messages', (req, res) => {
     res.status(400).json({ error: 'Missing message parameters' });
     return;
   }
+  if (shift !== 'First Shift' && shift !== 'Second Shift') {
+    res.status(400).json({ error: 'Shift must be "First Shift" or "Second Shift".' });
+    return;
+  }
   const newMessage: ShiftMessage = {
-    id: `SM-${Date.now()}`,
+    id: nextId('SM'),
     sender,
-    content,
+    content: String(content).slice(0, 1000),
     timestamp: new Date().toISOString(),
     shift
   };
@@ -446,23 +410,30 @@ app.post('/api/shift-messages', (req, res) => {
 // POST /api/bundles/:bundleId/stage
 app.post('/api/bundles/:bundleId/stage', (req, res) => {
   const { bundleId } = req.params;
-  const { operatorName, location } = req.body;
-  const bundle = bundles.find(b => b.id === bundleId);
+  const { operatorName } = req.body;
+  const location = req.body.location || 'Coat-Station';
+  const bundle = findBundle(bundleId);
   if (!bundle) {
     res.status(404).json({ error: 'Bundle not found' });
     return;
   }
-
-  // SW Rules verification
-  if (bundle.grade === 'Black' && location !== 'Raw-SW' && location !== 'Coat-Station' && !location.includes('Shear') && !location.includes('Bender') && !location.includes('Door-7') && !location.includes('Door-8') && !location.includes('Rack J-19') && !location.includes('Rack J-20') && !location.includes('Rack J-21') && !location.includes('Rack J-22') && !location.includes('Rack J-23') && !location.includes('Rack J-24') && !location.includes('Rack J-25') && !location.includes('Rack L-6') && !location.includes('Rack L-7') && !location.includes('Rack L-8') && !location.includes('Rack L-9') && !location.includes('Rack L-10')) {
-    res.status(400).json({ error: 'CRITICAL: Black (non-epoxy) bar is SW-only. Cannot stage in North/East/SE areas.' });
+  if (!isValidYardLocation(location) || location.startsWith('Crane-')) {
+    res.status(400).json({ error: `Unknown staging location "${location}".` });
+    return;
+  }
+  const blocked = movementBlockedReason(bundle);
+  if (blocked) {
+    res.status(400).json({ error: blocked });
+    return;
+  }
+  const zoneError = gradeZoneViolation(bundle.grade, location);
+  if (zoneError) {
+    res.status(400).json({ error: zoneError });
     return;
   }
 
   const oldLoc = bundle.location;
-  bundle.location = location || 'Coat-Station';
-  bundle.status = 'STAGED';
-  bundle.updatedAt = new Date().toISOString();
+  placeBundle(bundle, location, 'STAGED');
 
   logActivity(bundle.tagId, operatorName || 'Shear Operator', 'STAGED', oldLoc, bundle.location, `Staged at ${bundle.location}`);
   notifyClients();
@@ -472,10 +443,20 @@ app.post('/api/bundles/:bundleId/stage', (req, res) => {
 // POST /api/bundles/:bundleId/pickup
 app.post('/api/bundles/:bundleId/pickup', (req, res) => {
   const { bundleId } = req.params;
-  const { operatorName, craneId } = req.body; // e.g., Crane-NE, Crane-SW
-  const bundle = bundles.find(b => b.id === bundleId);
+  const { operatorName } = req.body;
+  const craneId = req.body.craneId || 'Crane-SW'; // e.g., Crane-NE, Crane-SW
+  const bundle = findBundle(bundleId);
   if (!bundle) {
     res.status(404).json({ error: 'Bundle not found' });
+    return;
+  }
+  if (!/^Crane-(NW|NE|SW|SE)$/.test(craneId)) {
+    res.status(400).json({ error: `Unknown crane "${craneId}".` });
+    return;
+  }
+  const blocked = movementBlockedReason(bundle);
+  if (blocked) {
+    res.status(400).json({ error: blocked });
     return;
   }
 
@@ -485,8 +466,16 @@ app.post('/api/bundles/:bundleId/pickup', (req, res) => {
     return;
   }
 
+  const suspended = bundles.find(b => b.location === craneId && b.id !== bundle.id);
+  if (suspended) {
+    res.status(400).json({ error: `CRANE COLLISION HAZARD: ${craneId} already has bundle ${suspended.tagId} on the hook. Drop it first.` });
+    return;
+  }
+
   const oldLoc = bundle.location;
-  bundle.location = craneId || 'Crane-SW';
+  bundle.stagedAt = stagedAtAfterMove(bundle, craneId, new Date().toISOString());
+  bundle.location = craneId;
+  bundle.door = undefined;
   bundle.updatedAt = new Date().toISOString();
 
   logActivity(bundle.tagId, operatorName || 'Crane Operator', 'PICKUP', oldLoc, bundle.location, `Picked up by ${craneId}`);
@@ -498,76 +487,37 @@ app.post('/api/bundles/:bundleId/pickup', (req, res) => {
 app.post('/api/bundles/:bundleId/drop', (req, res) => {
   const { bundleId } = req.params;
   const { operatorName, location } = req.body; // e.g. Rack J-15
-  const bundle = bundles.find(b => b.id === bundleId);
+  const bundle = findBundle(bundleId);
   if (!bundle) {
     res.status(404).json({ error: 'Bundle not found' });
     return;
   }
-
-  // SW verification: Black bar must remain SW
-  if (bundle.grade === 'Black') {
-    const isSwArea = location.includes('Door-7') || location.includes('Door-8') ||
-                     location.includes('Rack J-19') || location.includes('Rack J-20') ||
-                     location.includes('Rack J-21') || location.includes('Rack J-22') ||
-                     location.includes('Rack J-23') || location.includes('Rack J-24') ||
-                     location.includes('Rack J-25') || location.includes('Rack L-6') ||
-                     location.includes('Rack L-7') || location.includes('Rack L-8') ||
-                     location.includes('Rack L-9') || location.includes('Rack L-10') ||
-                     location === 'Raw-SW';
-    if (!isSwArea) {
-      res.status(400).json({ error: 'CRITICAL: Black (non-epoxy) bar cannot be dropped outside the SW zone.' });
-      return;
-    }
+  if (!isValidYardLocation(location) || location.startsWith('Crane-')) {
+    res.status(400).json({ error: 'Specify a valid drop location.' });
+    return;
+  }
+  const blocked = movementBlockedReason(bundle);
+  if (blocked) {
+    res.status(400).json({ error: blocked });
+    return;
   }
 
-  // Epoxy rebar cannot go into Black SW racks (J-19 to J-25, L-6 to L-10)
-  if (bundle.grade === 'Epoxy') {
-    const isBlackRack = /Rack\s+J-(19|20|21|22|23|24|25)/.test(location) || /Rack\s+L-(6|7|8|9|10)/.test(location);
-    if (isBlackRack) {
-      res.status(400).json({ error: 'CRITICAL: Epoxy bar cannot be stored in Black-bar SW racks.' });
-      return;
-    }
+  // Black bar stays SW; epoxy stays out of black-bar racks and SW shipping doors
+  const zoneError = gradeZoneViolation(bundle.grade, location);
+  if (zoneError) {
+    res.status(400).json({ error: zoneError });
+    return;
   }
 
   // Evaluate Dynamic Slotting for Intelligent Crane Sequencing
-  const existingBundles = bundles.filter(b => b.location === location && b.id !== bundle.id);
-  if (existingBundles.length > 0) {
-    const newShipping = new Date(bundle.shippingDate).getTime();
-    const conflict = existingBundles.find(e => new Date(e.shippingDate).getTime() < newShipping);
-    if (conflict) {
-      res.status(400).json({
-        error: `CRITICAL DYNAMIC SLOTTING VIOLATION: Stacking bundle ${bundle.tagId} (ships ${new Date(bundle.shippingDate).toLocaleDateString()}) on top of bundle ${conflict.tagId} (ships sooner: ${new Date(conflict.shippingDate).toLocaleDateString()}) at ${location} is blocked to prevent extra crane picks and epoxy scraping.`
-      });
-      return;
-    }
+  const conflict = slottingConflict(bundle, location, bundles);
+  if (conflict) {
+    res.status(400).json({ error: slottingViolationMessage(bundle, conflict, location) });
+    return;
   }
 
   const oldLoc = bundle.location;
-  bundle.location = location;
-
-  // Determine status transition based on destination
-  if (location.startsWith('Rack')) {
-    bundle.status = 'RACKED';
-  } else if (location.startsWith('Door')) {
-    bundle.status = 'LOADED';
-    bundle.door = location;
-  } else if (location === 'Coat-Station') {
-    bundle.status = 'COATED';
-  } else {
-    bundle.status = 'STAGED';
-  }
-
-  bundle.updatedAt = new Date().toISOString();
-
-  // If newly loaded, increment completed count on Job if it wasn't loaded already
-  if (bundle.status === 'LOADED') {
-    const job = jobs.find(j => j.id === bundle.jobId);
-    if (job) {
-      // Find loaded bundles for this job
-      const completed = bundles.filter(b => b.jobId === job.id && b.status === 'LOADED').length;
-      job.completedBundles = Math.min(job.totalBundles, completed);
-    }
-  }
+  placeBundle(bundle, location, statusAfterDrop(location));
 
   logActivity(bundle.tagId, operatorName || 'Crane Operator', 'DROP', oldLoc, bundle.location, `Dropped at ${location}`);
   notifyClients();
@@ -577,17 +527,25 @@ app.post('/api/bundles/:bundleId/drop', (req, res) => {
 // POST /api/bundles/:bundleId/send-to-bender
 app.post('/api/bundles/:bundleId/send-to-bender', (req, res) => {
   const { bundleId } = req.params;
-  const { operatorName, benderId } = req.body; // e.g. Bender-New-Robo, Bender-11-Bender
-  const bundle = bundles.find(b => b.id === bundleId);
+  const { operatorName } = req.body;
+  const benderId = req.body.benderId || 'Bender-New-Robo'; // e.g. Bender-New-Robo, Bender-11-Bender
+  const bundle = findBundle(bundleId);
   if (!bundle) {
     res.status(404).json({ error: 'Bundle not found' });
     return;
   }
+  if (!isValidYardLocation(benderId) || !benderId.startsWith('Bender-')) {
+    res.status(400).json({ error: `Unknown bender "${benderId}".` });
+    return;
+  }
+  const blocked = movementBlockedReason(bundle);
+  if (blocked) {
+    res.status(400).json({ error: blocked });
+    return;
+  }
 
   const oldLoc = bundle.location;
-  bundle.location = benderId || 'Bender-New-Robo';
-  bundle.status = 'BENDING';
-  bundle.updatedAt = new Date().toISOString();
+  placeBundle(bundle, benderId, 'BENDING');
 
   logActivity(bundle.tagId, operatorName || 'Shear Operator', 'BENDING_START', oldLoc, bundle.location, `Sent to bender ${benderId}`);
   notifyClients();
@@ -598,9 +556,13 @@ app.post('/api/bundles/:bundleId/send-to-bender', (req, res) => {
 app.post('/api/bundles/:bundleId/mark-bent', (req, res) => {
   const { bundleId } = req.params;
   const { operatorName } = req.body;
-  const bundle = bundles.find(b => b.id === bundleId);
+  const bundle = findBundle(bundleId);
   if (!bundle) {
     res.status(404).json({ error: 'Bundle not found' });
+    return;
+  }
+  if (bundle.status !== 'BENDING') {
+    res.status(400).json({ error: `Bundle ${bundle.tagId} is ${bundle.status}, not BENDING.` });
     return;
   }
 
@@ -616,40 +578,38 @@ app.post('/api/bundles/:bundleId/mark-bent', (req, res) => {
 // POST /api/bundles/:bundleId/force-load
 app.post('/api/bundles/:bundleId/force-load', (req, res) => {
   const { bundleId } = req.params;
-  const { operatorName, door, trailerSize } = req.body;
-  const bundle = bundles.find(b => b.id === bundleId);
+  const { operatorName } = req.body;
+  const door: string = req.body.door || 'Door-1';
+  const trailerSize: TrailerSize = req.body.trailerSize === 'Step Deck' ? 'Step Deck' : 'Flatbed';
+  const bundle = findBundle(bundleId);
   if (!bundle) {
     res.status(404).json({ error: 'Bundle not found' });
     return;
   }
+  if (!SHIPPING_DOORS.includes(door)) {
+    res.status(400).json({ error: `Unknown shipping door "${door}".` });
+    return;
+  }
+  const blocked = movementBlockedReason(bundle);
+  if (blocked) {
+    res.status(400).json({ error: blocked });
+    return;
+  }
 
   // Material zone rules check
-  if (bundle.grade === 'Black') {
-    if (door !== 'Door-7' && door !== 'Door-8') {
-      res.status(400).json({ error: 'CRITICAL: Black (non-epoxy) bar must be shipped from SW loading doors (Door-7 or Door-8).' });
-      return;
-    }
-  } else {
-    // Epoxy rebar
-    if (door === 'Door-7' || door === 'Door-8') {
-      res.status(400).json({ error: 'CRITICAL: Epoxy bar must be shipped from NW/NE doors (Door-1, Door-2, Door-3, North-End).' });
-      return;
-    }
+  const zoneError = gradeZoneViolation(bundle.grade, door);
+  if (zoneError) {
+    res.status(400).json({
+      error: bundle.grade === 'Black'
+        ? 'CRITICAL: Black (non-epoxy) bar must be shipped from SW loading doors (Door-7 or Door-8).'
+        : zoneError
+    });
+    return;
   }
 
   const oldLoc = bundle.location;
-  bundle.location = door || 'Door-1';
-  bundle.door = door || 'Door-1';
-  bundle.trailerSize = trailerSize || 'Flatbed';
-  bundle.status = 'LOADED';
-  bundle.updatedAt = new Date().toISOString();
-
-  // Increment completed count
-  const job = jobs.find(j => j.id === bundle.jobId);
-  if (job) {
-    const completed = bundles.filter(b => b.jobId === job.id && b.status === 'LOADED').length;
-    job.completedBundles = Math.min(job.totalBundles, completed);
-  }
+  placeBundle(bundle, door, 'LOADED');
+  bundle.trailerSize = trailerSize;
 
   logActivity(bundle.tagId, operatorName || 'Admin Operator', 'FORCED_LOAD', oldLoc, bundle.location, `Directly loaded onto ${bundle.trailerSize} at ${bundle.location}`);
   notifyClients();
@@ -668,65 +628,44 @@ app.post('/api/bundles/bulk-action', (req, res) => {
     return;
   }
 
-  const results: any[] = [];
+  const results: Bundle[] = [];
   const errors: string[] = [];
 
   for (const bundleId of bundleIds) {
-    const bundle = bundles.find(b => b.id === bundleId);
+    const bundle = findBundle(bundleId);
     if (!bundle) {
       errors.push(`Bundle ${bundleId} not found.`);
+      continue;
+    }
+    const blocked = movementBlockedReason(bundle);
+    if (blocked) {
+      errors.push(blocked);
       continue;
     }
 
     const oldLoc = bundle.location;
 
     if (action === 'LOAD') {
-      // Choose smart default door/trailer per bundle grade
-      let door = 'Door-1';
-      let trailerSize: TrailerSize = 'Flatbed';
-
-      if (bundle.grade === 'Black') {
-        door = 'Door-7';
-      } else {
-        door = 'Door-1';
+      if (bundle.status === 'LOADED') {
+        errors.push(`Bundle ${bundle.tagId} is already loaded at ${bundle.location}.`);
+        continue;
       }
-
-      bundle.location = door;
-      bundle.door = door;
-      bundle.trailerSize = trailerSize;
-      bundle.status = 'LOADED';
-      bundle.updatedAt = new Date().toISOString();
-
-      // Update related jobs
-      const job = jobs.find(j => j.id === bundle.jobId);
-      if (job) {
-        const completed = bundles.filter(b => b.jobId === job.id && b.status === 'LOADED').length;
-        job.completedBundles = Math.min(job.totalBundles, completed);
-      }
+      // Smart default door per grade: black ships SW, epoxy ships NW
+      const door = bundle.grade === 'Black' ? 'Door-7' : 'Door-1';
+      placeBundle(bundle, door, 'LOADED');
+      bundle.trailerSize = 'Flatbed';
 
       logActivity(bundle.tagId, operatorName || 'Admin Operator', 'FORCED_LOAD', oldLoc, bundle.location, `Bulk loaded at ${bundle.location}`);
       results.push(bundle);
     } else if (action === 'STAGE') {
-      let location = 'Coat-Station';
-      if (bundle.grade === 'Black') {
-        location = 'Raw-SW';
-      }
-
-      bundle.location = location;
-      bundle.status = 'STAGED';
-      bundle.updatedAt = new Date().toISOString();
+      const location = bundle.grade === 'Black' ? 'Raw-SW' : 'Coat-Station';
+      placeBundle(bundle, location, 'STAGED');
 
       logActivity(bundle.tagId, operatorName || 'Shear Operator', 'STAGED', oldLoc, bundle.location, `Bulk staged at ${bundle.location}`);
       results.push(bundle);
     } else if (action === 'SEND_TO_FABRICATION') {
-      let benderId = 'Bender-New-Robo';
-      if (bundle.grade === 'Black') {
-        benderId = 'Bender-11-Bender';
-      }
-
-      bundle.location = benderId;
-      bundle.status = 'BENDING';
-      bundle.updatedAt = new Date().toISOString();
+      const benderId = bundle.grade === 'Black' ? 'Bender-11-Bender' : 'Bender-New-Robo';
+      placeBundle(bundle, benderId, 'BENDING');
 
       logActivity(bundle.tagId, operatorName || 'Shear Operator', 'BENDING_START', oldLoc, bundle.location, `Bulk sent to fabrication at ${benderId}`);
       results.push(bundle);
@@ -742,60 +681,9 @@ app.post('/api/bundles/bulk-action', (req, res) => {
   }
 });
 
-function isOutdoorZone(zoneId: string): boolean {
-  if (!zoneId) return false;
-  const zid = zoneId.toLowerCase();
-  return zid.includes('rack') || zid.includes('door') || zid.includes('north-end') || zid.includes('stock') || zid.includes('raw') || zid.includes('crane');
-}
-
 // GET /api/dashboard
 app.get('/api/dashboard', (req, res) => {
-  const bendingCount = bundles.filter(b => b.status === 'BENDING').length;
-  const totalActiveJobs = jobs.filter(j => j.completedBundles < j.totalBundles).length;
-  const stagedCount = bundles.filter(b => b.status === 'STAGED').length;
-  const loadedCount = bundles.filter(b => b.status === 'LOADED').length;
-  const rackedCount = bundles.filter(b => b.status === 'RACKED').length;
-  const rejectedCount = bundles.filter(b => b.status === 'REJECTED').length;
-
-  // UV Hazards are Epoxy bundles sitting in an outdoor zone for >= 25 days
-  const uvHazardsCount = bundles.filter(b => {
-    if (!b.isEpoxy || !b.stagedAt) return false;
-    if (!isOutdoorZone(b.location)) return false;
-    const days = (Date.now() - new Date(b.stagedAt).getTime()) / (1000 * 60 * 60 * 24);
-    return days >= 25;
-  }).length;
-
-  // Let's compute actual dynamic tons loaded for shift performance dashboard!
-  // First Shift (6:00 to 16:30 -> hours 6 to 16.5)
-  // Second Shift (16:30 to 3:00 -> hours 16.5 to 24 and 0 to 3)
-  let firstShiftWeight = 0;
-  let secondShiftWeight = 0;
-
-  bundles.filter(b => b.status === 'LOADED').forEach(b => {
-    const date = new Date(b.updatedAt);
-    const hour = date.getUTCHours() + date.getUTCMinutes() / 60;
-    if (hour >= 6 && hour < 16.5) {
-      firstShiftWeight += b.weight;
-    } else {
-      secondShiftWeight += b.weight;
-    }
-  });
-
-  // Convert to tons (2000 lbs = 1 ton) rounded to 1 decimal place
-  const firstShiftThroughput = Math.round((firstShiftWeight / 2000) * 10) / 10;
-  const secondShiftThroughput = Math.round((secondShiftWeight / 2000) * 10) / 10;
-
-  res.json({
-    bendingCount,
-    totalActiveJobs,
-    stagedCount,
-    loadedCount,
-    rackedCount,
-    rejectedCount,
-    uvHazardsCount,
-    firstShiftThroughput,
-    secondShiftThroughput
-  });
+  res.json(computeDashboardMetrics(bundles, jobs));
 });
 
 // Vite dev integration or production hosting

@@ -3,7 +3,7 @@ export type RebarGrade = 'Black' | 'Epoxy';
 export type TrailerSize = 'Flatbed' | 'Step Deck';
 export type UserRole = 'CRANE_OPERATOR' | 'SHEAR_OPERATOR' | 'BENDER' | 'ADMIN';
 export type PlantLocation = 'St. Paul, MN' | 'Marion, OH' | 'Sedalia, MO';
-export type ASTMSpecification = 'ASTM_A775' | 'ASTM_A934';
+export type ASTMSpecification = 'ASTM_A615' | 'ASTM_A775' | 'ASTM_A934';
 
 export interface Bundle {
   id: string;
