@@ -1,11 +1,12 @@
 import React, { useEffect } from 'react';
-import { useLocation, Link } from 'wouter';
+import { useLocation, useRouter, matchRoute, Link } from 'wouter';
 import { useApp } from '../context/AppContext';
 import RoleSwitcher from './RoleSwitcher';
 import { Anchor, LayoutDashboard, Shuffle, HardHat, Map, Briefcase, AlertTriangle, Home } from 'lucide-react';
 
 export default function NavBar() {
   const [location] = useLocation();
+  const { parser } = useRouter();
   const { currentRole } = useApp();
 
   const navItems = [
@@ -23,9 +24,10 @@ export default function NavBar() {
 
   // Name the browser tab after the screen, so tabs, history and screen readers can tell screens apart
   useEffect(() => {
-    const screen = navItems.find(item => item.href === location)?.label ?? 'Page not found';
+    // Match the way the router does (any letter case, an optional trailing slash), so /JOBS is titled like /jobs
+    const screen = navItems.find(item => matchRoute(parser, item.href, location)[0])?.label ?? 'Page not found';
     document.title = `${screen} · SkyHook Yard Logistics`;
-  }, [location]);
+  }, [location, parser]);
 
   return (
     <nav className="border-b border-slate-800 bg-slate-950/80 backdrop-blur-md sticky top-0 z-40 px-4 py-3" id="main-navigation-bar">

@@ -176,6 +176,67 @@ test('a coated epoxy bundle cannot be set down in Raw-SW black-bar stock', async
   assert.match(r.json.error, /never go back into Raw-SW/);
 });
 
+test('epoxy-ordered bar goes through the coat line before anything else', async () => {
+  // Uncoated TG-303 next to black TG-504 used to become "coated" beside it once staged
+  const shear = await call('POST', '/api/bundles/TG-303/stage', { location: 'Shear-South' });
+  assert.equal(shear.status, 400);
+  assert.match(shear.json.error, /coat line before/);
+  assert.equal((await call('POST', '/api/bundles/TG-401/send-to-bender', { benderId: 'Bender-SE-Bender' })).status, 400);
+  const bulk = await call('POST', '/api/bundles/bulk-action', { bundleIds: ['TG-601'], action: 'LOAD' });
+  assert.equal(bulk.status, 400);
+  assert.match(bulk.json.error, /coat line before/);
+  assert.equal((await bundle('TG-601')).status, 'RAW');
+});
+
+test('raw stock moved within Raw-SW stays raw, and never turns coated there', async () => {
+  const restaged = await call('POST', '/api/bundles/TG-304/stage', { location: 'Raw-SW' });
+  assert.equal(restaged.status, 200);
+  assert.equal(restaged.json.status, 'RAW');
+  // TG-102 ships soonest, so setting it back down in Raw-SW buries nothing
+  assert.equal((await call('POST', '/api/bundles/TG-102/pickup', { craneId: 'Crane-SW' })).status, 200);
+  const back = await call('POST', '/api/bundles/TG-102/drop', { location: 'Raw-SW' });
+  assert.equal(back.status, 200);
+  assert.equal(back.json.status, 'RAW');
+});
+
+test('the coat line coats what reaches it and never blocks itself', async () => {
+  const first = await call('POST', '/api/bundles/TG-303/stage', { location: 'Coat-Station' });
+  assert.equal(first.status, 200);
+  assert.equal(first.json.status, 'COATED');
+  assert.equal((await call('POST', '/api/bundles/TG-304/stage', { location: 'Coat-Station' })).status, 200);
+  // Raw TG-102 set on the line by crane is coated there too, beside the coated bundles already on it
+  assert.equal((await call('POST', '/api/bundles/TG-102/pickup', { craneId: 'Crane-SW' })).status, 200);
+  const dropped = await call('POST', '/api/bundles/TG-102/drop', { location: 'Coat-Station' });
+  assert.equal(dropped.status, 200);
+  assert.equal(dropped.json.status, 'COATED');
+  const black = await call('POST', '/api/bundles/TG-203/stage', { location: 'Coat-Station' });
+  assert.equal(black.status, 400);
+  assert.match(black.json.error, /never goes through the epoxy coat line/);
+});
+
+test('only real map zones are routes and capacity targets', async () => {
+  for (const name of ['constructor', '__proto__', 'toString']) {
+    const r = await call('POST', '/api/gantry/execute-route', { originId: 'Rack J-04', destinationId: name, bundleId: 'TG-101' });
+    assert.equal(r.status, 400, name);
+    assert.equal((await call('PUT', `/api/zone-capacities/${name}`, { capacity: 50000 })).status, 400, name);
+  }
+  assert.equal((await bundle('TG-101')).location, 'Rack J-04');
+});
+
+test('coating audits need a real percentage and coated bar', async () => {
+  const pct = await call('POST', '/api/exceptions', {
+    tagId: 'TG-101', operatorName: 'QC', type: 'Quality Audit', description: 'x', qualityAudit: { coatingDamagePct: '5%', damagedFootSection: 'ft 1' }
+  });
+  assert.equal(pct.status, 400);
+  assert.match(pct.json.error, /percentage between 0 and 100/);
+  const raw = await call('POST', '/api/exceptions', {
+    tagId: 'TG-102', operatorName: 'QC', type: 'Quality Audit', description: 'x', qualityAudit: { coatingDamagePct: 5, damagedFootSection: 'ft 1' }
+  });
+  assert.equal(raw.status, 400);
+  assert.match(raw.json.error, /no coating to audit/);
+  assert.equal((await bundle('TG-102')).status, 'RAW');
+});
+
 test('black bar cannot be staged where coated bar sits', async () => {
   // Shear-North holds coated TG-104; TG-203 is raw black bar
   const r = await call('POST', '/api/bundles/TG-203/stage', { location: 'Shear-North' });

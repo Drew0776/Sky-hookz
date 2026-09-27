@@ -7,7 +7,7 @@ import { INITIAL_BUNDLES, INITIAL_JOBS, INITIAL_OPERATORS, INITIAL_EXCEPTIONS, I
 import { zoneCoords } from './src/pages/yardMapData';
 import { getRouteAnalysisByZones } from './src/utils/yardMath';
 import {
-  computeDashboardMetrics, gradePlacementViolation, isValidYardLocation, MAX_ZONE_CAPACITY_LBS, MIN_ZONE_CAPACITY_LBS, movementBlockedReason, SHIPPING_DOORS, slottingConflict, slottingViolationMessage, stagedAtAfterMove, statusAfterDrop
+  computeDashboardMetrics, gradePlacementViolation, isValidYardLocation, MAX_ZONE_CAPACITY_LBS, MIN_ZONE_CAPACITY_LBS, movementBlockedReason, rawStockStatus, SHIPPING_DOORS, SW_SHIPPING_DOORS, slottingConflict, slottingViolationMessage, stagedAtAfterMove, statusAfterDrop, statusAfterStaging, isCoated
 } from './src/yardRules';
 
 // Store state in-memory so modifications persist during runtime.
@@ -93,7 +93,7 @@ function placeBundle(bundle: Bundle, location: string, status: BundleStatus) {
   const now = new Date().toISOString();
   bundle.stagedAt = stagedAtAfterMove(bundle, location, now);
   bundle.location = location;
-  bundle.status = status;
+  bundle.status = rawStockStatus(bundle.status, location, status);
   if (status === 'LOADED') {
     bundle.door = location;
   } else {
@@ -108,20 +108,22 @@ function findBundle(bundleId: string) {
   return bundles.find(b => b.id === bundleId);
 }
 
+/** A zone drawn on the yard map. An own-property check, so names like "constructor" aren't zones. */
+const isMapZone = (id: string): boolean => Object.prototype.hasOwnProperty.call(zoneCoords, id);
+
 const app = express();
 app.use(express.json());
 
-// Every text and number field the API accepts, checked once here so no route can store an object,
-// an array or a novel where the screens expect short text (one bad record crashed every open screen),
-// and no garbage number can slip past a safety check (windSpeed: "high" used to skip the wind lockout).
+// Every text field the API reads, checked once here so no route can store an object, an array or
+// a novel where the screens expect short text (one bad record can break every open screen), and the
+// coating audit's damage figure, so garbage can't slip past the 2% rejection.
 const TEXT_FIELDS: Record<string, number> = {
   operatorName: 80, sender: 80, resolvedBy: 80,
-  tagId: 40, bundleId: 40, bundleTagId: 40,
-  type: 60, shift: 20, action: 40, trailerSize: 20, materialClass: 20,
+  tagId: 40, bundleId: 40,
+  type: 60, shift: 20, action: 40, trailerSize: 20,
   location: 40, craneId: 40, benderId: 40, door: 40, originId: 40, destinationId: 40,
   description: 1000, content: 1000
 };
-const NUMBER_FIELDS: Record<string, [number, number]> = { windSpeed: [0, 200], ropeSway: [0, 90], bundleLength: [0, 100] };
 const MAX_BULK_BUNDLES = 500;
 
 app.use('/api', (req, res, next) => {
@@ -144,14 +146,6 @@ app.use('/api', (req, res, next) => {
     }
     body[field] = value.trim(); // so a blank-but-spaces value counts as missing
   }
-  for (const [field, [min, max]] of Object.entries(NUMBER_FIELDS)) {
-    const value = body[field];
-    if (value === undefined || value === null) continue;
-    if (typeof value !== 'number' || !Number.isFinite(value) || value < min || value > max) {
-      res.status(400).json({ error: `${field} must be a number from ${min} to ${max}.` });
-      return;
-    }
-  }
   if (body.bundleIds !== undefined && (!Array.isArray(body.bundleIds) || body.bundleIds.length > MAX_BULK_BUNDLES ||
       body.bundleIds.some((id: unknown) => typeof id !== 'string' || id.length > 40))) {
     res.status(400).json({ error: `bundleIds must be a list of up to ${MAX_BULK_BUNDLES} bundle IDs.` });
@@ -162,6 +156,13 @@ app.use('/api', (req, res, next) => {
       (audit.damagedFootSection != null && (typeof audit.damagedFootSection !== 'string' || audit.damagedFootSection.length > 40)))) {
     res.status(400).json({ error: 'qualityAudit must be an object with a short damagedFootSection.' });
     return;
+  }
+  if (audit != null) {
+    const pct = audit.coatingDamagePct;
+    if (typeof pct !== 'number' || !Number.isFinite(pct) || pct < 0 || pct > 100) {
+      res.status(400).json({ error: 'Coating damage must be a percentage between 0 and 100.' });
+      return;
+    }
   }
   next();
 });
@@ -203,7 +204,7 @@ app.get('/api/zone-capacities', (req, res) => {
 app.put('/api/zone-capacities/:zoneId', (req, res) => {
   const { zoneId } = req.params;
   const { capacity } = req.body;
-  if (!zoneCoords[zoneId] || zoneId.startsWith('Crane-')) {
+  if (!isMapZone(zoneId) || zoneId.startsWith('Crane-')) {
     res.status(400).json({ error: `Unknown storage zone "${zoneId}".` });
     return;
   }
@@ -228,7 +229,7 @@ app.post('/api/gantry/execute-route', (req, res) => {
     res.status(400).json({ error: 'Origin and destination sector IDs are required.' });
     return;
   }
-  if (!zoneCoords[originId] || !zoneCoords[destinationId]) {
+  if (!isMapZone(originId) || !isMapZone(destinationId)) {
     res.status(400).json({ error: 'Origin and destination must be zones on the yard map.' });
     return;
   }
@@ -384,11 +385,12 @@ app.post('/api/exceptions', (req, res) => {
 
   let damagePct: number | undefined;
   if (type === 'Quality Audit' && qualityAudit) {
-    damagePct = Number(qualityAudit.coatingDamagePct);
-    if (!Number.isFinite(damagePct) || damagePct < 0 || damagePct > 100) {
-      res.status(400).json({ error: 'Coating damage must be a percentage between 0 and 100.' });
+    if (bundle && !isCoated(bundle)) {
+      const what = bundle.grade === 'Black' ? 'black bar' : 'raw stock that has not been through the coat line';
+      res.status(400).json({ error: `Bundle ${bundle.tagId} is ${what}, so it has no coating to audit.` });
       return;
     }
+    damagePct = qualityAudit.coatingDamagePct; // a percentage, checked with the request body
     // ASTM limit: damaged coating may not exceed 2% of the surface area in any 1-foot length
     if (damagePct > 2) {
       finalDescription = `${description} [AUTOMATIC ASTM REJECTION: Visible coating damage of ${damagePct}% exceeds the 2% maximum allowable limit in the 1-foot section: ${qualityAudit.damagedFootSection}.]`;
@@ -463,7 +465,7 @@ app.post('/api/shift-messages', (req, res) => {
   const newMessage: ShiftMessage = {
     id: nextId('SM'),
     sender,
-    content: String(content).slice(0, 1000),
+    content,
     timestamp: new Date().toISOString(),
     shift
   };
@@ -498,7 +500,7 @@ app.post('/api/bundles/:bundleId/stage', (req, res) => {
   }
 
   const oldLoc = bundle.location;
-  placeBundle(bundle, location, 'STAGED');
+  placeBundle(bundle, location, statusAfterStaging(location));
 
   logActivity(bundle.tagId, operatorName || 'Shear Operator', 'STAGED', oldLoc, bundle.location, `Staged at ${bundle.location}`);
   notifyClients();
@@ -668,13 +670,11 @@ app.post('/api/bundles/:bundleId/force-load', (req, res) => {
   }
 
   // Material zone rules check
-  const zoneError = gradePlacementViolation(bundle, door, bundles);
+  const zoneError = bundle.grade === 'Black' && !SW_SHIPPING_DOORS.includes(door)
+    ? 'CRITICAL: Black (non-epoxy) bar must be shipped from SW loading doors (Door-7 or Door-8).'
+    : gradePlacementViolation(bundle, door, bundles);
   if (zoneError) {
-    res.status(400).json({
-      error: bundle.grade === 'Black'
-        ? 'CRITICAL: Black (non-epoxy) bar must be shipped from SW loading doors (Door-7 or Door-8).'
-        : zoneError
-    });
+    res.status(400).json({ error: zoneError });
     return;
   }
 
@@ -740,7 +740,7 @@ app.post('/api/bundles/bulk-action', (req, res) => {
         errors.push(placeError);
         continue;
       }
-      placeBundle(bundle, location, 'STAGED');
+      placeBundle(bundle, location, statusAfterStaging(location));
 
       logActivity(bundle.tagId, operatorName || 'Shear Operator', 'STAGED', oldLoc, bundle.location, `Bulk staged at ${bundle.location}`);
       results.push(bundle);

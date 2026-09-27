@@ -90,7 +90,7 @@ const RAW_INITIAL_BUNDLES: any[] = [
   {
     id: 'TG-302', tagId: 'TG-302', jobId: 'JOB-03', mark: 'MK-32', grade: 'Epoxy', barSize: '#11', length: 42, weight: 5576, isEpoxy: true,
     route: 'Raw-SW -> Coat-Station -> Shear-North -> Bender-11-Bender -> Rack J-05 -> Door-2',
-    status: 'STAGED', location: 'Coat-Station', updatedAt: at('2026-05-24T13:10:00Z')
+    status: 'COATED', location: 'Coat-Station', updatedAt: at('2026-05-24T13:10:00Z')
   },
   {
     id: 'TG-303', tagId: 'TG-303', jobId: 'JOB-03', mark: 'MK-33', grade: 'Epoxy', barSize: '#5', length: 22, weight: 1144, isEpoxy: true,
@@ -127,7 +127,7 @@ const RAW_INITIAL_BUNDLES: any[] = [
   {
     id: 'TG-403', tagId: 'TG-403', jobId: 'JOB-04', mark: 'MK-43', grade: 'Epoxy', barSize: '#5', length: 16, weight: 832, isEpoxy: true,
     route: 'Raw-SW -> Coat-Station -> Shear-Center -> Bender-Old-Robo -> Rack L-4 -> Door-1',
-    status: 'STAGED', location: 'Coat-Station', updatedAt: at('2026-05-24T14:40:00Z')
+    status: 'COATED', location: 'Coat-Station', updatedAt: at('2026-05-24T14:40:00Z')
   },
   {
     id: 'TG-404', tagId: 'TG-404', jobId: 'JOB-04', mark: 'MK-44', grade: 'Epoxy', barSize: '#4', length: 14, weight: 624, isEpoxy: true,
