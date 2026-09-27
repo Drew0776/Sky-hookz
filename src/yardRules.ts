@@ -132,8 +132,12 @@ export function slottingConflict(moving: Bundle, destination: string, all: Bundl
     .sort((a, b) => new Date(a.shippingDate).getTime() - new Date(b.shippingDate).getTime())[0];
 }
 
+/** A bundle's ship date as its plant sees it, so the server's messages and every screen show the same day. */
+export const formatShipDate = (b: Pick<Bundle, 'shippingDate' | 'plantLocation'>, options: Intl.DateTimeFormatOptions = {}): string =>
+  new Date(b.shippingDate).toLocaleDateString('en-US', { ...options, timeZone: PLANT_TIME_ZONES[b.plantLocation] || 'America/Chicago' });
+
 export function slottingViolationMessage(moving: Bundle, conflict: Bundle, destination: string): string {
-  return `CRITICAL DYNAMIC SLOTTING VIOLATION: Stacking bundle ${moving.tagId} (ships ${new Date(moving.shippingDate).toLocaleDateString()}) on top of bundle ${conflict.tagId} (ships sooner: ${new Date(conflict.shippingDate).toLocaleDateString()}) at ${destination} is blocked to prevent extra crane picks and epoxy scraping.`;
+  return `CRITICAL DYNAMIC SLOTTING VIOLATION: Stacking bundle ${moving.tagId} (ships ${formatShipDate(moving)}) on top of bundle ${conflict.tagId} (ships sooner: ${formatShipDate(conflict)}) at ${destination} is blocked to prevent extra crane picks and epoxy scraping.`;
 }
 
 /* ---------- Status and outdoor exposure ---------- */

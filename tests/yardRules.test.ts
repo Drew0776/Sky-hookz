@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import type { Bundle } from '../src/types';
-import { computeDashboardMetrics, daysOutdoors, getZoneCapacity, gradeZoneViolation, isUvHazard, isValidYardLocation, movementBlockedReason, plantLocalHour, slottingConflict, stagedAtAfterMove, statusAfterDrop, statusAfterStaging, rawStockStatus, isCoated, DEFAULT_ZONE_CAPACITY_LBS, gradePlacementViolation } from '../src/yardRules';
+import { computeDashboardMetrics, daysOutdoors, getZoneCapacity, gradeZoneViolation, isUvHazard, isValidYardLocation, movementBlockedReason, plantLocalHour, slottingConflict, stagedAtAfterMove, statusAfterDrop, statusAfterStaging, rawStockStatus, isCoated, formatShipDate, DEFAULT_ZONE_CAPACITY_LBS, gradePlacementViolation } from '../src/yardRules';
 import { getRouteAnalysisByZones } from '../src/utils/yardMath';
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -151,4 +151,13 @@ test('black steel never touches coated steel, at any stage', () => {
   // Raw epoxy-ordered bar is black steel: it can share Raw-SW with black bar, but can't skip the coat line
   assert.equal(gradePlacementViolation(b('m', 'Epoxy', 'Crane-SW', 'RAW'), 'Raw-SW', [b('black', 'Black', 'Raw-SW', 'RAW')]), null);
   assert.match(gradePlacementViolation(b('m', 'Epoxy', 'Raw-SW', 'RAW'), 'Shear-South', yard) ?? '', /coat line before/);
+});
+
+test('ship dates show the plant\'s calendar day, wherever the code runs', () => {
+  // 03:00 UTC on 1 Oct is still the evening of 30 Sep at every plant (a UTC server used to print 10/1); by 05:00 UTC it's 1 Oct everywhere
+  const late = { shippingDate: '2026-10-01T03:00:00Z' };
+  assert.equal(formatShipDate({ ...late, plantLocation: 'St. Paul, MN' }), '9/30/2026');
+  assert.equal(formatShipDate({ ...late, plantLocation: 'Marion, OH' }), '9/30/2026');
+  assert.equal(formatShipDate({ shippingDate: '2026-10-01T05:00:00Z', plantLocation: 'Marion, OH' }), '10/1/2026');
+  assert.equal(formatShipDate({ shippingDate: '2026-10-01T05:00:00Z', plantLocation: 'Sedalia, MO' }), '10/1/2026');
 });

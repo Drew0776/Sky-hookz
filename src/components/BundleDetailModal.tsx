@@ -18,7 +18,8 @@ import {
   Bookmark,
   TrendingUp
 } from 'lucide-react';
-import { daysOutdoors, UV_COVER_BY_DAYS, UV_GUIDANCE, UV_WARNING_DAYS } from '../yardRules';
+import { daysOutdoors, formatShipDate, UV_COVER_BY_DAYS, UV_GUIDANCE, UV_WARNING_DAYS } from '../yardRules';
+import { useDialog } from '../utils/useDialog';
 
 interface BundleDetailModalProps {
   bundle: Bundle | null;
@@ -51,6 +52,7 @@ const BAR_SIZE_STANDARDS: Record<string, BarSizeSpecs> = {
 type Point3D = [number, number, number];
 
 export default function BundleDetailModal({ bundle, onClose }: BundleDetailModalProps) {
+  const dialogRef = useDialog<HTMLDivElement>(onClose);
   if (!bundle) return null;
 
   const rotXRef = useRef<number>(0.4); // rotation in radians
@@ -490,7 +492,7 @@ export default function BundleDetailModal({ bundle, onClose }: BundleDetailModal
   }, [autoRotate, zoom, bend, isBending, bundle]);
 
   return (
-    <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fadeIn" id="bundle-technical-modal">
+    <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fadeIn" ref={dialogRef} id="bundle-technical-modal" role="dialog" aria-modal="true" aria-label={`Bundle ${bundle.tagId} details`}>
       <div className="bg-[#0b101d] border border-slate-800 rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl relative flex flex-col no-scrollbar">
         {/* Top Grade Bar Visual Indicator Line */}
         <div className={`h-1.5 w-full ${bundle.isEpoxy ? 'bg-teal-500' : 'bg-indigo-500'}`}></div>
@@ -659,7 +661,7 @@ export default function BundleDetailModal({ bundle, onClose }: BundleDetailModal
               <div className="flex items-center justify-between">
                 <span className="text-slate-400">Expected Shipping Date:</span>
                 <span className="text-right font-bold text-teal-400">
-                  {new Date(bundle.shippingDate).toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}
+                  {formatShipDate(bundle, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}
                 </span>
               </div>
             </div>

@@ -15,6 +15,7 @@ import {
   HardHat,
   ArrowRight
 } from 'lucide-react';
+import { useDialog } from '../utils/useDialog';
 
 export default function LandingPage() {
   const { currentRole, currentOperator, operators } = useApp();
@@ -347,6 +348,7 @@ interface HandoffWizardModalProps {
 }
 
 function HandoffWizardModal({ onClose, onComplete, bundles }: HandoffWizardModalProps) {
+  const dialogRef = useDialog<HTMLDivElement>(onClose);
   const [step, setStep] = useState(1);
   const [lockoutChecked, setLockoutChecked] = useState(false);
   const [housekeepingChecked, setHousekeepingChecked] = useState(false);
@@ -368,7 +370,7 @@ function HandoffWizardModal({ onClose, onComplete, bundles }: HandoffWizardModal
   };
 
   return (
-    <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fadeIn" id="handoff-wizard-modal">
+    <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fadeIn" ref={dialogRef} id="handoff-wizard-modal" role="dialog" aria-modal="true" aria-label="Supervisor handoff">
       <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 space-y-5 shadow-2xl relative overflow-hidden text-left">
         <div className="absolute top-0 left-0 h-1.5 w-full bg-gradient-to-r from-teal-500 to-amber-500"></div>
 

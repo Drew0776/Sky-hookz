@@ -341,6 +341,7 @@ export default function CraneCabPage() {
                   <span className="text-[10px] font-mono uppercase tracking-widest text-muted block">Select Release Drop Target</span>
                   <div className="flex flex-col md:flex-row gap-2.5">
                     <select
+                      aria-label="Drop target zone"
                       value={dropTarget}
                       onChange={(e) => setDropTarget(e.target.value)}
                       className="bg-slate-900 text-slate-200 border border-slate-800 rounded-lg px-3 py-2 text-xs font-mono flex-1 focus:border-amber-500 focus:ring-1 focus:ring-amber-500/30"
