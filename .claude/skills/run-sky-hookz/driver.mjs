@@ -187,8 +187,16 @@ async function crane() {
       process.exitCode = 2;
       return;
     }
-    const options = await select.locator('option').evaluateAll(os => os.map(o => o.value).filter(Boolean));
-    if (!options.includes(target)) throw new Error(`${target} is not offered for ${picked}; choices: ${options.join(', ')}`);
+    const options = await select.locator('option').evaluateAll(os => os.filter(o => o.value).map(o => ({ value: o.value, text: o.textContent.trim(), disabled: o.disabled })));
+    const choice = options.find(o => o.value === target);
+    if (!choice) throw new Error(`${target} is not offered for ${picked}; choices: ${options.map(o => o.value).join(', ')}`);
+    // The drop menu disables spots the server would refuse, and says why
+    if (choice.disabled) {
+      console.log(`crane: ${picked} -> ${target} blocked before sending: ${choice.text}`);
+      await snap(page, 'crane');
+      process.exitCode = 2;
+      return;
+    }
     const before = await noticeText();
     await select.selectOption(target);
     await page.getByRole('button', { name: /RELEASE PRESSURE CLAMP/ }).click();

@@ -40,7 +40,7 @@ Screenshots go to `/tmp/shots/sky-hookz/` (override with `SHOTS_DIR`). The serve
 | `start` / `stop` | Start the production server detached, or kill the port's listener |
 | `smoke` | Health, bundle list, JSON 404, grade-zoning refusal, SW-crane rule, dashboard |
 | `shot [/route] [--width N] [--full]` | Screenshot, and report horizontal overflow and console errors |
-| `crane [--tag T] [--to Z] [--crane C]` | Pick up bundle `T` with crane `C`, drop at `Z`, and confirm the new location from the API. Exit code 2 = the app refused the pickup; the reason is printed |
+| `crane [--tag T] [--to Z] [--crane C]` | Pick up bundle `T` with crane `C`, drop at `Z`, and confirm the new location from the API. Exit code 2 = the app refused the pickup, or the drop menu marks `Z` as refused (for example "TG-205 ships sooner"); the reason is printed. The bundle then stays on the hook until `start` resets the yard |
 
 Every browser command prints `console errors: none` or lists them, and exits 1 if there were any.
 
@@ -62,7 +62,7 @@ lsof -ti:3000 -sTCP:LISTEN | xargs -r kill   # stop it
 
 ```bash
 npm run lint   # tsc --noEmit
-npm test       # 38 tests: yard rules, sample data, and API tests against the real Express app
+npm test       # 39 tests: yard rules, sample data, and API tests against the real Express app
 ```
 
 ## Gotchas

@@ -1476,6 +1476,7 @@ export default function YardMapPage() {
                 <div className="flex flex-col items-stretch sm:items-end gap-1.5 shrink-0">
                   <button
                     type="button"
+                    aria-pressed={isRoutingActive}
                     onClick={() => {
                       setIsRoutingActive(!isRoutingActive);
                       // Clear existing routes if turning off
