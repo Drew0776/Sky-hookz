@@ -41,6 +41,12 @@ export function movementBlockedReason(b: Pick<Bundle, 'status' | 'tagId'>): stri
   return null;
 }
 
+/** Why a crane can't lift `b` right now (a QC hold, or it's still in a bender), or null when it can. */
+export function liftBlockedReason(b: Pick<Bundle, 'status' | 'tagId'>): string | null {
+  if (b.status === 'BENDING') return `Bundle ${b.tagId} is still in the bender. Mark it bent before a crane lifts it.`;
+  return movementBlockedReason(b);
+}
+
 /* ---------- Grade zoning ---------- */
 
 const SW_BLACK_RACK = /^Rack (J-(19|2[0-5])|L-([6-9]|10))$/;

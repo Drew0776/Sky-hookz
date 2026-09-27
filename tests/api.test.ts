@@ -49,6 +49,8 @@ test('unknown API routes and malformed JSON answer in JSON', async () => {
 });
 
 test('drop enforces grade zoning and moves a valid bundle', async () => {
+  assert.equal((await call('POST', '/api/bundles/TG-104/pickup', { craneId: 'Crane-NW' })).status, 200);
+  assert.equal((await call('POST', '/api/bundles/TG-202/pickup', { craneId: 'Crane-SW' })).status, 200);
   const epoxyAtSwDoor = await call('POST', '/api/bundles/TG-104/drop', { location: 'Door-8' });
   assert.equal(epoxyAtSwDoor.status, 400);
   assert.match(epoxyAtSwDoor.json.error, /NW\/NE doors/);
@@ -67,6 +69,7 @@ test('drop enforces grade zoning and moves a valid bundle', async () => {
 });
 
 test('resetting the yard restores the seed data', async () => {
+  await call('POST', '/api/bundles/TG-104/pickup', { craneId: 'Crane-NW' });
   await call('POST', '/api/bundles/TG-104/drop', { location: 'Rack J-12' });
   assert.equal((await bundle('TG-104')).location, 'Rack J-12');
   resetYardState();
@@ -171,6 +174,7 @@ test('request bodies must carry text where the screens expect text', async () =>
 });
 
 test('a coated epoxy bundle cannot be set down in Raw-SW black-bar stock', async () => {
+  await call('POST', '/api/bundles/TG-104/pickup', { craneId: 'Crane-NW' });
   const r = await call('POST', '/api/bundles/TG-104/drop', { location: 'Raw-SW' });
   assert.equal(r.status, 400);
   assert.match(r.json.error, /never go back into Raw-SW/);
@@ -235,6 +239,40 @@ test('coating audits need a real percentage and coated bar', async () => {
   assert.equal(raw.status, 400);
   assert.match(raw.json.error, /no coating to audit/);
   assert.equal((await bundle('TG-102')).status, 'RAW');
+});
+
+test('only a load on a crane hook can be set down, and nothing is lifted out of a bender', async () => {
+  // Setting black TG-202 straight into an SW rack would skip the SW-crane rule
+  const skipped = await call('POST', '/api/bundles/TG-202/drop', { location: 'Rack J-20' });
+  assert.equal(skipped.status, 400);
+  assert.match(skipped.json.error, /not on a crane hook/);
+  assert.equal((await bundle('TG-202')).location, 'Raw-SW');
+
+  // TG-106 is mid-bend at Bender-11-Bender
+  const lift = await call('POST', '/api/bundles/TG-106/pickup', { craneId: 'Crane-NE' });
+  assert.equal(lift.status, 400);
+  assert.match(lift.json.error, /still in the bender/);
+  const route = await call('POST', '/api/gantry/execute-route', { originId: 'Bender-11-Bender', destinationId: 'Rack L-1', bundleId: 'TG-106' });
+  assert.equal(route.status, 400);
+  assert.match(route.json.error, /still in the bender/);
+  assert.equal((await call('POST', '/api/bundles/TG-106/mark-bent', {})).status, 200);
+  assert.equal((await call('POST', '/api/bundles/TG-106/pickup', { craneId: 'Crane-NE' })).status, 200);
+});
+
+test('exceptions and shift notes stay bounded, and open exceptions outlast resolved ones', async () => {
+  const seedOpen = (await call('GET', '/api/exceptions')).json.filter((e: any) => e.status === 'OPEN').map((e: any) => e.id);
+  for (let i = 0; i < 510; i++) {
+    const ex = await call('POST', '/api/exceptions', { tagId: 'TG-104', operatorName: 'QC', type: 'Misplaced Bar', description: `note ${i}` });
+    if (i < 505) await call('POST', `/api/exceptions/${ex.json.id}/resolve`, { resolvedBy: 'QC' });
+    await call('POST', '/api/shift-messages', { sender: 'Lead', content: `note ${i}`, shift: 'First Shift' });
+  }
+  const all = (await call('GET', '/api/exceptions')).json;
+  assert.equal(all.length, 500);
+  for (const id of seedOpen) assert.ok(all.some((e: any) => e.id === id), `open ${id} kept`);
+  assert.equal(all.filter((e: any) => e.status === 'OPEN').length, seedOpen.length + 5);
+  const notes = (await call('GET', '/api/shift-messages')).json;
+  assert.equal(notes.length, 500);
+  assert.equal(notes[0].content, 'note 509');
 });
 
 test('black bar cannot be staged where coated bar sits', async () => {

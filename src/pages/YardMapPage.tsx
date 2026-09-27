@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../context/AppContext';
 import { Bundle, Obstruction } from '../types';
 import { INITIAL_BUNDLES, INITIAL_ACTIVITY } from '../seedData';
@@ -34,7 +34,7 @@ import {
   zoneQuadrants 
 } from './yardMapData';
 import { getRouteAnalysisByZones } from '../utils/yardMath';
-import { getZoneCapacity, gradePlacementViolation, movementBlockedReason, OVERLOAD_RATIO, slottingConflict, SLOW_MODE_RATIO } from '../yardRules';
+import { getZoneCapacity, gradePlacementViolation, isCoated, liftBlockedReason, OVERLOAD_RATIO, slottingConflict, SLOW_MODE_RATIO } from '../yardRules';
 import { clickable } from '../utils/clickable';
 
 export default function YardMapPage() {
@@ -57,6 +57,22 @@ export default function YardMapPage() {
 
   // High-contrast full-screen modal trigger block
   const [doubleClickedZoneId, setDoubleClickedZoneId] = useState<string | null>(null);
+  const zoneModalCloseRef = useRef<HTMLButtonElement>(null);
+
+  // The zone control panel is a modal dialog: focus moves into it, Escape closes it, and focus returns to the zone
+  const closeZoneModal = () => {
+    const zoneId = doubleClickedZoneId;
+    setDoubleClickedZoneId(null);
+    setActionError(null);
+    if (zoneId) requestAnimationFrame(() => document.getElementById(`zone-shape-${zoneId}`)?.focus());
+  };
+  useEffect(() => {
+    if (!doubleClickedZoneId) return;
+    zoneModalCloseRef.current?.focus();
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') closeZoneModal(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [doubleClickedZoneId]);
   const [activities, setActivities] = useState<any[]>([]);
   const [zoneCustomCapacities, setZoneCustomCapacities] = useState<Record<string, number>>({});
   const [assignedZoneOperators, setAssignedZoneOperators] = useState<Record<string, string>>({});
@@ -282,7 +298,7 @@ export default function YardMapPage() {
   // Placement rules the server checks on execute, shown before the operator presses the button
   const routeRuleIssues: string[] = [];
   if (routeBundle && routeDestination) {
-    const blocked = movementBlockedReason(routeBundle);
+    const blocked = liftBlockedReason(routeBundle);
     if (blocked) routeRuleIssues.push(blocked);
     if (routeDestination.startsWith('Crane-')) routeRuleIssues.push('A gantry position is not a place to set a bundle down.');
     const zoneError = gradePlacementViolation(routeBundle, routeDestination, bundles);
@@ -900,11 +916,7 @@ export default function YardMapPage() {
                       }
                     }
 
-                    return (
-                      <motion.g 
-                        key={zone.id}
-                        id={`zone-shape-${zone.id}`}
-                        onClick={() => {
+                    const activateZone = () => {
                           if (isRoutingActive) {
                             if (!routeOrigin) {
                               setRouteOrigin(zone.id);
@@ -920,6 +932,21 @@ export default function YardMapPage() {
                             }
                           } else {
                             setSelectedZone(zone.id);
+                          }
+                    };
+
+                    return (
+                      <motion.g 
+                        key={zone.id}
+                        id={`zone-shape-${zone.id}`}
+                        role="button"
+                        tabIndex={0}
+                        aria-label={`${zone.label}, ${getBundlesAtZone(zone.id).length} bundles`}
+                        onClick={activateZone}
+                        onKeyDown={(e: React.KeyboardEvent) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            activateZone();
                           }
                         }}
                         onDoubleClick={() => setDoubleClickedZoneId(zone.id)}
@@ -1637,7 +1664,7 @@ export default function YardMapPage() {
                                 🌬️ Traversed runway airspace completely clear. Safe rapid corridor flight.
                               </div>
                             ) : (
-                              <div className="space-y-2 max-h-[145px] overflow-y-auto pr-1">
+                              <div className="space-y-2 max-h-[145px] overflow-y-auto pr-1" tabIndex={0} role="region" aria-label="Zones crossed by the route">
                                 {routeAnalysis.crossedZonesSummary.map((zone) => (
                                   <div key={`crossed-${zone.id}`} className="bg-slate-900/40 border border-slate-900 p-2 rounded-lg text-xxs">
                                     <div className="flex justify-between items-center mb-1">
@@ -1701,7 +1728,7 @@ export default function YardMapPage() {
                           ✓ <span className="font-bold">CORRIDOR RECON COMPLETE:</span> Zero geometrical or payload clearance conflicts detected. Overhead travel track is certified clear. Gantry crane operator may execute travel command.
                         </div>
                       ) : (
-                        <div className="space-y-2.5 max-h-[220px] overflow-y-auto pr-1">
+                        <div className="space-y-2.5 max-h-[220px] overflow-y-auto pr-1" tabIndex={0} role="region" aria-label="Route obstructions">
                           {routeAnalysis.obstructions.map((obs, idx) => (
                             <div 
                               key={`route-obs-${idx}`} 
@@ -2065,6 +2092,13 @@ export default function YardMapPage() {
                     <span className="text-xxs uppercase font-mono tracking-widest text-muted">Selected Station Coordinate</span>
                     <h3 className="text-sm font-bold text-white uppercase font-mono mt-0.5">{activeZoneData.id}</h3>
                     <span className="text-xxs font-mono text-slate-400 block mt-1">{activeZoneData.desc}</span>
+                    <button
+                      type="button"
+                      onClick={() => setDoubleClickedZoneId(activeZoneData.id)}
+                      className="mt-3 w-full rounded-lg border border-slate-800 hover:border-amber-500 bg-slate-900/70 px-3 py-2 text-xxs font-mono font-bold uppercase tracking-wider text-amber-400 transition-all cursor-pointer"
+                    >
+                      Open zone controls
+                    </button>
                   </div>
 
                   <div className="pt-3 border-t border-slate-900">
@@ -2072,7 +2106,7 @@ export default function YardMapPage() {
                     {activeZoneBundles.length === 0 ? (
                       <p className="text-xxs font-mono text-muted py-6 text-center">No bundles recorded at this location coordinate currently.</p>
                     ) : (
-                      <div className="space-y-1 max-h-[220px] overflow-y-auto pr-1">
+                      <div className="space-y-1 max-h-[220px] overflow-y-auto pr-1" tabIndex={0} role="region" aria-label="Bundles in the selected zone">
                         {activeZoneBundles.map((b) => (
                           <div key={b.id} className="bg-slate-950 p-2 border border-slate-900 rounded-lg flex items-center justify-between text-xxs">
                             <div className="flex items-center gap-2">
@@ -2097,7 +2131,7 @@ export default function YardMapPage() {
                 <div className="text-center py-20">
                   <HelpCircle className="h-8 w-8 text-slate-700 mx-auto stroke-[1.5]" />
                   <p className="text-[10px] font-mono text-muted mt-3 max-w-[180px] mx-auto leading-relaxed uppercase">
-                    Click any coordinate cell on the plant floor Map to monitor zone inventories.
+                    Click any coordinate cell on the plant floor Map, or Tab to it and press Enter, to monitor zone inventories. Double-click a cell to open its controls.
                   </p>
                 </div>
               )}
@@ -2127,7 +2161,7 @@ export default function YardMapPage() {
         const assignedOp = assignedZoneOperators[doubleClickedZoneId] || 'Unassigned';
 
         return (
-          <div className="fixed inset-0 bg-slate-950/98 z-50 flex flex-col font-mono overflow-hidden text-slate-200 backdrop-blur-md" id="zone-control-modal">
+          <div className="fixed inset-0 bg-slate-950/98 z-50 flex flex-col font-mono overflow-hidden text-slate-200 backdrop-blur-md" id="zone-control-modal" role="dialog" aria-modal="true" aria-labelledby="zone-control-title">
             {/* HEADER SECTION */}
             <div className="border-b border-slate-800 bg-slate-900/60 p-4 md:px-6 flex items-center justify-between">
               <div className="space-y-1.5">
@@ -2138,15 +2172,17 @@ export default function YardMapPage() {
                   <span className="text-[10px] text-muted uppercase tracking-widest leading-none">SYSTEM ID: {modalZone.id}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <h2 className="text-xl font-sans font-black text-white uppercase tracking-tight">{modalZone.desc || modalZone.label}</h2>
+                  <h2 id="zone-control-title" className="text-xl font-sans font-black text-white uppercase tracking-tight">{modalZone.desc || modalZone.label}</h2>
                   <span className="text-xxs px-2 py-0.5 rounded-full border border-slate-700 text-slate-400 capitalize">{modalZone.type}</span>
                 </div>
               </div>
               
               <button 
-                onClick={() => { setDoubleClickedZoneId(null); setActionError(null); }}
+                ref={zoneModalCloseRef}
+                onClick={closeZoneModal}
                 className="rounded-lg border border-slate-800 hover:border-amber-500 bg-slate-900/70 hover:bg-slate-900 p-2 text-slate-400 hover:text-white transition-all focus:ring-1 focus:ring-amber-500/30 cursor-pointer"
                 title="Exit Control Center"
+                aria-label="Close zone controls"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -2340,7 +2376,7 @@ export default function YardMapPage() {
                                           </button>
                                         )}
                                         
-                                        {b.status === 'RAW' && (
+                                        {b.status === 'RAW' && b.grade === 'Epoxy' && (
                                           <button 
                                             onClick={() => handleActionOnBundle(b.id, 'stage', 'Coat-Station')}
                                             className="bg-indigo-600 text-white px-2 py-1 rounded text-[8px] font-black uppercase tracking-wider hover:bg-indigo-500 transition cursor-pointer"
@@ -2349,7 +2385,7 @@ export default function YardMapPage() {
                                           </button>
                                         )}
 
-                                        {b.status !== 'BENDING' && modalZone.type !== 'bender' && (
+                                        {b.status !== 'BENDING' && modalZone.type !== 'bender' && (b.grade === 'Black' || isCoated(b)) && (
                                           <button 
                                             onClick={() => handleActionOnBundle(b.id, 'send-to-bender', 'Bender-New-Robo')}
                                             className="bg-slate-900 border border-slate-800 text-[8px] px-2 py-1 rounded text-orange-400 font-bold hover:border-orange-500 transition-all cursor-pointer"

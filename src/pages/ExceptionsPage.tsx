@@ -459,7 +459,7 @@ export default function ExceptionsPage() {
             {resolvedExceptions.length === 0 ? (
               <p className="text-center font-mono text-xxs text-muted py-8">No archived deviation reports listed.</p>
             ) : (
-              <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
+              <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1" tabIndex={0} role="region" aria-label="Archived holds">
                 {resolvedExceptions.map((ex) => (
                   <div key={ex.id} className="bg-slate-950/60 p-3 border border-slate-900 rounded-xl flex flex-col md:flex-row justify-between gap-4 text-xxs font-mono text-muted">
                     <div>

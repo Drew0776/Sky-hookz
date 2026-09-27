@@ -75,7 +75,7 @@ async function smoke() {
       return r.status === 404 && /No API route/.test(r.json?.error);
     }],
     ['epoxy refused at a black-bar door', async () => {
-      const r = await api('POST', '/api/bundles/TG-104/drop', { location: 'Door-8' });
+      const r = await api('POST', '/api/bundles/TG-104/force-load', { door: 'Door-8' });
       return r.status === 400 && /NW\/NE doors/.test(r.json?.error);
     }],
     ['black bar refused on a non-SW crane', async () => (await api('POST', '/api/bundles/TG-202/pickup', { craneId: 'Crane-NE' })).status === 400],

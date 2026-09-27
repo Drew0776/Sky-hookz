@@ -176,7 +176,7 @@ export default function LandingPage() {
             </button>
           </div>
 
-          <div className="bg-slate-950/40 rounded-xl border border-slate-800 overflow-hidden divide-y divide-slate-900/80 max-h-[460px] overflow-y-auto pr-1">
+          <div className="bg-slate-950/40 rounded-xl border border-slate-800 overflow-hidden divide-y divide-slate-900/80 max-h-[460px] overflow-y-auto pr-1" tabIndex={0} role="region" aria-label="Activity stream">
             {activities.length === 0 ? (
               <p className="p-8 text-center font-mono text-xs text-muted">No recent physical events logged on the floor.</p>
             ) : (
@@ -287,7 +287,7 @@ export default function LandingPage() {
             </form>
 
             {/* List of messages filtered by active tab */}
-            <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
+            <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1" tabIndex={0} role="region" aria-label="Shift notes">
               {shiftMsgs.filter(m => m.shift === activeTab).length === 0 ? (
                 <p className="text-center font-mono text-[10px] text-muted py-6">No reports logged for this shift.</p>
               ) : (
