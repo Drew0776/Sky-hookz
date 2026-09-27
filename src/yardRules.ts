@@ -48,26 +48,42 @@ export const SW_SHIPPING_DOORS = ['Door-7', 'Door-8'];
 export const SHIPPING_DOORS = ['Door-1', 'Door-2', 'Door-3', 'North-End', ...SW_SHIPPING_DOORS];
 
 export const isBlackBarRack = (location: string): boolean => SW_BLACK_RACK.test(location);
-export const isProcessingStation = (location: string): boolean =>
-  location === 'Coat-Station' || location.startsWith('Shear-') || location.startsWith('Bender-');
+export const isShearOrBender = (location: string): boolean =>
+  location.startsWith('Shear-') || location.startsWith('Bender-');
 export const isSwBlackStorage = (location: string): boolean =>
   location === 'Raw-SW' || SW_SHIPPING_DOORS.includes(location) || isBlackBarRack(location);
 
-/**
- * Why a bundle of `grade` may not be placed at `location`, or null when it may.
- * Black and epoxy are never mixed. All bar arrives black at Raw-SW and most of it is coated,
- * so epoxy-ordered bar still in RAW status is black steel and may sit at Raw-SW; once coated
- * (any other status, or no status given) it never goes back into a black-bar area.
+/*
+ * The coating lifecycle. All bar arrives black at Raw-SW as RAW stock, and about 98% of it is
+ * epoxy-ordered. Epoxy-ordered bar is coated when it reaches the coat line, which sets COATED,
+ * then goes on to the shears, benders, racks and trucks. Black bar never goes through the coat line.
+ * So "coated" is epoxy-ordered bar in any status but RAW, and that stays true because RAW is only
+ * ever left through the coat line (below) and no move sets RAW again, except moving raw stock
+ * within Raw-SW (rawStockStatus).
  */
-export function gradeZoneViolation(grade: RebarGrade, location: string, status?: string): string | null {
+
+/** Whether a bundle's bar is epoxy-coated. */
+export const isCoated = (b: { grade: RebarGrade; status?: string }): boolean => b.grade === 'Epoxy' && b.status !== 'RAW';
+
+/**
+ * Why a bundle of `grade` in `status` may not be placed at `location`, or null when it may.
+ * Black and epoxy are never mixed: black bar stays SW and out of the coat line, coated epoxy
+ * never goes back into black-bar areas, and uncoated epoxy-ordered bar goes to the coat line first.
+ */
+export function gradeZoneViolation(grade: RebarGrade, location: string, status: string): string | null {
   if (grade === 'Black') {
-    if (isSwBlackStorage(location) || isProcessingStation(location)) return null;
-    return 'CRITICAL: Black (non-epoxy) bar is SW-only. Store it at Raw-SW, Door-7/8 or racks J-19 to J-25 and L-6 to L-10, or send it to a shear, bender or the coat line.';
+    if (isSwBlackStorage(location) || isShearOrBender(location)) return null;
+    if (location === 'Coat-Station') return 'CRITICAL: Black (non-epoxy) bar never goes through the epoxy coat line.';
+    return 'CRITICAL: Black (non-epoxy) bar is SW-only. Store it at Raw-SW, Door-7/8 or racks J-19 to J-25 and L-6 to L-10, or send it to a shear or bender.';
+  }
+  if (status === 'RAW') {
+    if (location === 'Raw-SW' || location === 'Coat-Station') return null;
+    return 'CRITICAL: Epoxy-ordered bar is still uncoated black steel. It goes through the coat line before shearing, bending, racking or shipping.';
   }
   if (isBlackBarRack(location)) {
     return 'CRITICAL: Epoxy bar cannot be stored in Black-bar SW racks.';
   }
-  if (location === 'Raw-SW' && status !== 'RAW') {
+  if (location === 'Raw-SW') {
     return 'CRITICAL: Coated epoxy bar must never go back into Raw-SW black-bar stock. Only uncoated bar waiting for the coat line belongs there.';
   }
   if (SW_SHIPPING_DOORS.includes(location)) {
@@ -78,23 +94,11 @@ export function gradeZoneViolation(grade: RebarGrade, location: string, status?:
 
 /* ---------- Black never touches coated ---------- */
 
-type Surfaced = { id: string; tagId: string; grade: RebarGrade; status?: string; location: string };
+type Surfaced = { id: string; tagId: string; grade: RebarGrade; status: string; location: string };
 
-/**
- * Whether a bundle's bar is epoxy-coated yet. All bar arrives black: epoxy-ordered bar is still black
- * while RAW at Raw-SW or STAGED at the coat line waiting its turn.
- */
-export function isCoated(b: { grade: RebarGrade; status?: string; location: string }): boolean {
-  if (b.grade !== 'Epoxy' || b.status === 'RAW') return false;
-  return !(b.location === 'Coat-Station' && b.status === 'STAGED');
-}
-
-/** Whether `moving` will be coated once set down at `destination`. */
-function coatedAfterMove(moving: Surfaced, destination: string): boolean {
-  if (isCoated(moving)) return true;
-  // Bar leaving the coat line for anywhere else has been through it
-  return moving.grade === 'Epoxy' && moving.location === 'Coat-Station' && destination !== 'Coat-Station';
-}
+/** Whether `moving` is coated once set down at `destination`: reaching the coat line coats epoxy-ordered bar. */
+const coatedAfterMove = (moving: Surfaced, destination: string): boolean =>
+  isCoated(moving) || (moving.grade === 'Epoxy' && destination === 'Coat-Station');
 
 /** A bundle at `destination` with the other surface: black steel never touches coated steel, at any stage. */
 export function mixedSurfaceConflict<T extends Surfaced>(moving: T, destination: string, all: T[]): T | undefined {
@@ -128,13 +132,19 @@ export function slottingViolationMessage(moving: Bundle, conflict: Bundle, desti
 
 /* ---------- Status and outdoor exposure ---------- */
 
-/** Status a bundle takes when a crane sets it down at `location`. */
+/** Status a bundle takes when a crane sets it down at `location`. The coat line coats what reaches it. */
 export function statusAfterDrop(location: string): BundleStatus {
   if (location.startsWith('Rack')) return 'RACKED';
   if (location.startsWith('Door')) return 'LOADED';
-  if (location === 'Coat-Station') return 'COATED';
-  return 'STAGED';
+  return statusAfterStaging(location);
 }
+
+/** Status a bundle takes when staged at `location`. */
+export const statusAfterStaging = (location: string): BundleStatus => (location === 'Coat-Station' ? 'COATED' : 'STAGED');
+
+/** Raw stock moved within Raw-SW is still raw stock; otherwise the move's own status applies. */
+export const rawStockStatus = (current: BundleStatus, location: string, next: BundleStatus): BundleStatus =>
+  current === 'RAW' && location === 'Raw-SW' ? 'RAW' : next;
 
 export const UV_WARNING_DAYS = 25;
 export const UV_COVER_BY_DAYS = 30;
@@ -149,12 +159,9 @@ export const isOutdoorZone = (location: string): boolean =>
   location === 'Raw-SW' ||
   location === 'North-End';
 
-/** Raw epoxy-grade stock is still uncoated until it passes the coat line, so it has no UV clock. */
-export const isCoatedEpoxy = (b: Pick<Bundle, 'isEpoxy' | 'status'>): boolean => b.isEpoxy && b.status !== 'RAW';
-
-/** Days a coated epoxy bundle has sat outdoors, or null when the UV clock doesn't apply. */
+/** Days a coated epoxy bundle has sat outdoors, or null when the UV clock doesn't apply (black and uncoated bar). */
 export function daysOutdoors(b: Bundle, now: number = Date.now()): number | null {
-  if (!isCoatedEpoxy(b) || !b.stagedAt || !isOutdoorZone(b.location)) return null;
+  if (!isCoated(b) || !b.stagedAt || !isOutdoorZone(b.location)) return null;
   return (now - new Date(b.stagedAt).getTime()) / DAY_MS;
 }
 

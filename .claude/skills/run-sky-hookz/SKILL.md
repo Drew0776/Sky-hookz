@@ -47,7 +47,7 @@ Every browser command prints `console errors: none` or lists them, and exits 1 i
 **Direct invocation** (no server, for PRs that touch rules or routes):
 
 ```bash
-node --import tsx -e "import('./src/yardRules.ts').then(r => console.log(r.gradeZoneViolation('Epoxy', 'Door-8')))"
+node --import tsx -e "import('./src/yardRules.ts').then(r => console.log(r.gradeZoneViolation('Epoxy', 'Door-8', 'RACKED')))"
 SKYHOOK_NO_LISTEN=1 node --import tsx -e "import('./server.ts').then(async ({ app }) => { const s = app.listen(0); await new Promise(r => s.once('listening', r)); console.log(await (await fetch('http://127.0.0.1:' + s.address().port + '/api/health')).text()); s.close(); })"
 ```
 
@@ -62,7 +62,7 @@ lsof -ti:3000 -sTCP:LISTEN | xargs -r kill   # stop it
 
 ```bash
 npm run lint   # tsc --noEmit
-npm test       # 30 tests: yard rules, sample data, and API tests against the real Express app
+npm test       # 35 tests: yard rules, sample data, and API tests against the real Express app
 ```
 
 ## Gotchas
