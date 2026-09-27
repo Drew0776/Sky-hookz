@@ -13,7 +13,13 @@
   --text-xxs--line-height: 1rem;
 
   --animate-fadeIn: fadeIn 0.3s ease-out both;
+  /* Alerts pulse by glowing brighter instead of fading: faded text dropped below AA contrast at its dim point */
+  --animate-pulse: pulse-glow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   --animate-spin-slow: spin 3s linear infinite;
+
+  @keyframes pulse-glow {
+    50% { filter: brightness(1.3); }
+  }
 
   @keyframes fadeIn {
     from { opacity: 0; transform: translateY(4px); }

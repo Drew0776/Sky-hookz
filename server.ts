@@ -7,7 +7,7 @@ import { INITIAL_BUNDLES, INITIAL_JOBS, INITIAL_OPERATORS, INITIAL_EXCEPTIONS, I
 import { zoneCoords } from './src/pages/yardMapData';
 import { getRouteAnalysisByZones } from './src/utils/yardMath';
 import {
-  computeDashboardMetrics, gradePlacementViolation, isValidYardLocation, MAX_ZONE_CAPACITY_LBS, MIN_ZONE_CAPACITY_LBS, movementBlockedReason, rawStockStatus, SHIPPING_DOORS, SW_SHIPPING_DOORS, slottingConflict, slottingViolationMessage, stagedAtAfterMove, statusAfterDrop, statusAfterStaging, isCoated
+  computeDashboardMetrics, gradePlacementViolation, isValidYardLocation, MAX_ZONE_CAPACITY_LBS, MIN_ZONE_CAPACITY_LBS, liftBlockedReason, movementBlockedReason, rawStockStatus, SHIPPING_DOORS, SW_SHIPPING_DOORS, slottingConflict, slottingViolationMessage, stagedAtAfterMove, statusAfterDrop, statusAfterStaging, isCoated
 } from './src/yardRules';
 
 // Store state in-memory so modifications persist during runtime.
@@ -32,8 +32,18 @@ export function resetYardState() {
   zoneCapacities = {};
 }
 
-// Keep the in-memory activity log bounded on long-running servers
+// Keep the in-memory lists bounded on long-running servers
 const MAX_ACTIVITY_EVENTS = 500;
+const MAX_EXCEPTIONS = 500;
+const MAX_SHIFT_MESSAGES = 500;
+
+/** Trims the exception list to its cap, dropping the oldest resolved exceptions first so no open one is lost to a resolved one. */
+function trimExceptions() {
+  while (exceptions.length > MAX_EXCEPTIONS) {
+    const oldestResolved = exceptions.map(e => e.status).lastIndexOf('RESOLVED');
+    exceptions.splice(oldestResolved === -1 ? exceptions.length - 1 : oldestResolved, 1);
+  }
+}
 
 // Active Server-Sent Events (SSE) Client Connections
 let sseClients: Response[] = [];
@@ -266,7 +276,7 @@ app.post('/api/gantry/execute-route', (req, res) => {
   }
 
   if (targetBundle) {
-    const blocked = movementBlockedReason(targetBundle);
+    const blocked = liftBlockedReason(targetBundle);
     if (blocked) {
       res.status(400).json({ error: blocked });
       return;
@@ -426,6 +436,7 @@ app.post('/api/exceptions', (req, res) => {
   };
 
   exceptions.unshift(newEx);
+  trimExceptions();
   notifyClients();
   res.status(201).json(newEx);
 });
@@ -470,6 +481,7 @@ app.post('/api/shift-messages', (req, res) => {
     shift
   };
   shiftMessages.unshift(newMessage);
+  if (shiftMessages.length > MAX_SHIFT_MESSAGES) shiftMessages.length = MAX_SHIFT_MESSAGES;
   notifyClients();
   res.status(201).json(newMessage);
 });
@@ -521,7 +533,7 @@ app.post('/api/bundles/:bundleId/pickup', (req, res) => {
     res.status(400).json({ error: `Unknown crane "${craneId}".` });
     return;
   }
-  const blocked = movementBlockedReason(bundle);
+  const blocked = liftBlockedReason(bundle);
   if (blocked) {
     res.status(400).json({ error: blocked });
     return;
@@ -566,6 +578,11 @@ app.post('/api/bundles/:bundleId/drop', (req, res) => {
   const blocked = movementBlockedReason(bundle);
   if (blocked) {
     res.status(400).json({ error: blocked });
+    return;
+  }
+  // Only a load on a crane hook can be set down; anything else would skip the pickup rules (the SW crane for black bar)
+  if (!bundle.location.startsWith('Crane-')) {
+    res.status(400).json({ error: `Bundle ${bundle.tagId} is not on a crane hook. Pick it up first.` });
     return;
   }
 
