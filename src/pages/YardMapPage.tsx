@@ -34,8 +34,9 @@ import {
   zoneQuadrants 
 } from './yardMapData';
 import { getRouteAnalysisByZones } from '../utils/yardMath';
-import { getZoneCapacity, gradePlacementViolation, isCoated, liftBlockedReason, OVERLOAD_RATIO, slottingConflict, SLOW_MODE_RATIO } from '../yardRules';
+import { formatShipDate, getZoneCapacity, gradePlacementViolation, isCoated, liftBlockedReason, OVERLOAD_RATIO, slottingConflict, SLOW_MODE_RATIO } from '../yardRules';
 import { clickable } from '../utils/clickable';
+import { hasOpenDialog } from '../utils/useDialog';
 
 export default function YardMapPage() {
   const { currentRole, operators } = useApp();
@@ -69,7 +70,7 @@ export default function YardMapPage() {
   useEffect(() => {
     if (!doubleClickedZoneId) return;
     zoneModalCloseRef.current?.focus();
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') closeZoneModal(); };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && !hasOpenDialog()) closeZoneModal(); };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [doubleClickedZoneId]);
@@ -304,7 +305,7 @@ export default function YardMapPage() {
     const zoneError = gradePlacementViolation(routeBundle, routeDestination, bundles);
     if (zoneError) routeRuleIssues.push(zoneError);
     const conflict = slottingConflict(routeBundle, routeDestination, bundles);
-    if (conflict) routeRuleIssues.push(`Bundle ${conflict.tagId} at ${routeDestination} ships sooner (${new Date(conflict.shippingDate).toLocaleDateString()}) and would be buried.`);
+    if (conflict) routeRuleIssues.push(`Bundle ${conflict.tagId} at ${routeDestination} ships sooner (${formatShipDate(conflict)}) and would be buried.`);
   }
   const routeAnalysis = routeOrigin && routeDestination 
     ? getRouteAnalysisByZones(routeOrigin, routeDestination, bundles, zoneCustomCapacities, routeBundle?.id)
@@ -1475,6 +1476,7 @@ export default function YardMapPage() {
                 <div className="flex flex-col items-stretch sm:items-end gap-1.5 shrink-0">
                   <button
                     type="button"
+                    aria-pressed={isRoutingActive}
                     onClick={() => {
                       setIsRoutingActive(!isRoutingActive);
                       // Clear existing routes if turning off

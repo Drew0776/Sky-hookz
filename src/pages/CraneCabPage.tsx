@@ -16,6 +16,7 @@ import {
   HelpCircle
 } from 'lucide-react';
 import { clickable } from '../utils/clickable';
+import { gradeZoneViolation, isCoated, mixedSurfaceConflict, slottingConflict } from '../yardRules';
 
 export default function CraneCabPage() {
   const { currentRole, currentOperator } = useApp();
@@ -170,6 +171,21 @@ export default function CraneCabPage() {
 
   // Restricting target dropdown list based on suspended rebar type for active security check
   const isSuspendedBlack = loadedUnderActiveCrane?.grade === 'Black';
+
+  // Why the load on the hook can't be set down at `zone` (the server would refuse it), shown in the drop menu
+  const dropNote = (zone: string): string | null => {
+    const load = loadedUnderActiveCrane;
+    if (!load) return null;
+    if (gradeZoneViolation(load.grade, zone, load.status)) return load.grade === 'Epoxy' && !isCoated(load) ? 'coat line first' : 'wrong zone for this bar';
+    const other = mixedSurfaceConflict(load, zone, bundles);
+    if (other) return `holds ${isCoated(other) ? 'coated' : 'black'} bar`;
+    const buried = slottingConflict(load, zone, bundles);
+    return buried ? `${buried.tagId} ships sooner` : null;
+  };
+  const dropOption = (zone: string, label: string) => {
+    const note = dropNote(zone);
+    return <option key={zone} value={zone} disabled={!!note}>{note ? `${label} (${note})` : label}</option>;
+  };
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto px-4 py-6" id="crane-cab-page">
@@ -341,6 +357,7 @@ export default function CraneCabPage() {
                   <span className="text-[10px] font-mono uppercase tracking-widest text-muted block">Select Release Drop Target</span>
                   <div className="flex flex-col md:flex-row gap-2.5">
                     <select
+                      aria-label="Drop target zone"
                       value={dropTarget}
                       onChange={(e) => setDropTarget(e.target.value)}
                       className="bg-slate-900 text-slate-200 border border-slate-800 rounded-lg px-3 py-2 text-xs font-mono flex-1 focus:border-amber-500 focus:ring-1 focus:ring-amber-500/30"
@@ -351,57 +368,57 @@ export default function CraneCabPage() {
                       {isSuspendedBlack ? (
                         <>
                           <optgroup label="SW Black-Rebar Storage Racks">
-                            <option value="Rack J-19">Rack J-19 (SW Zone)</option>
-                            <option value="Rack J-20">Rack J-20 (SW Zone)</option>
-                            <option value="Rack J-21">Rack J-21 (SW Zone)</option>
-                            <option value="Rack J-22">Rack J-22 (SW Zone)</option>
-                            <option value="Rack J-23">Rack J-23 (SW Zone)</option>
-                            <option value="Rack J-24">Rack J-24 (SW Zone)</option>
-                            <option value="Rack J-25">Rack J-25 (SW Zone)</option>
-                            <option value="Rack L-6">Rack L-6 (SW Zone)</option>
-                            <option value="Rack L-7">Rack L-7 (SW Zone)</option>
-                            <option value="Rack L-8">Rack L-8 (SW Zone)</option>
-                            <option value="Rack L-9">Rack L-9 (SW Zone)</option>
-                            <option value="Rack L-10">Rack L-10 (SW Zone)</option>
+                            {dropOption('Rack J-19', 'Rack J-19 (SW Zone)')}
+                            {dropOption('Rack J-20', 'Rack J-20 (SW Zone)')}
+                            {dropOption('Rack J-21', 'Rack J-21 (SW Zone)')}
+                            {dropOption('Rack J-22', 'Rack J-22 (SW Zone)')}
+                            {dropOption('Rack J-23', 'Rack J-23 (SW Zone)')}
+                            {dropOption('Rack J-24', 'Rack J-24 (SW Zone)')}
+                            {dropOption('Rack J-25', 'Rack J-25 (SW Zone)')}
+                            {dropOption('Rack L-6', 'Rack L-6 (SW Zone)')}
+                            {dropOption('Rack L-7', 'Rack L-7 (SW Zone)')}
+                            {dropOption('Rack L-8', 'Rack L-8 (SW Zone)')}
+                            {dropOption('Rack L-9', 'Rack L-9 (SW Zone)')}
+                            {dropOption('Rack L-10', 'Rack L-10 (SW Zone)')}
                           </optgroup>
                           <optgroup label="SW Shipping Bay Loading Doors">
-                            <option value="Door-7">Door-7 (SW Flatbed/Step Deck)</option>
-                            <option value="Door-8">Door-8 (SW Flatbed/Step Deck)</option>
+                            {dropOption('Door-7', 'Door-7 (SW Flatbed/Step Deck)')}
+                            {dropOption('Door-8', 'Door-8 (SW Flatbed/Step Deck)')}
                           </optgroup>
                         </>
                       ) : (
                         <>
                           <optgroup label="NW/NE/SE Epoxy Racks">
-                            <option value="Rack J-01">Rack J-01 (Epoxy Buffer)</option>
-                            <option value="Rack J-02">Rack J-02 (Epoxy Buffer)</option>
-                            <option value="Rack J-03">Rack J-03 (Epoxy Buffer)</option>
-                            <option value="Rack J-04">Rack J-04 (Epoxy Buffer)</option>
-                            <option value="Rack J-05">Rack J-05 (Epoxy Buffer)</option>
-                            <option value="Rack J-06">Rack J-06 (Epoxy Buffer)</option>
-                            <option value="Rack J-08">Rack J-08 (Epoxy Buffer)</option>
-                            <option value="Rack J-10">Rack J-10 (Epoxy Buffer)</option>
-                            <option value="Rack J-11">Rack J-11 (Epoxy Buffer)</option>
-                            <option value="Rack J-12">Rack J-12 (Epoxy Buffer)</option>
-                            <option value="Rack J-15">Rack J-15 (Epoxy Buffer)</option>
-                            <option value="Rack J-16">Rack J-16 (Epoxy Buffer)</option>
-                            <option value="Rack J-17">Rack J-17 (Epoxy Buffer)</option>
-                            <option value="Rack J-18">Rack J-18 (Epoxy Buffer)</option>
-                            <option value="Rack K-1">Rack K-1 (Epoxy Buffer)</option>
-                            <option value="Rack K-2">Rack K-2 (Epoxy Buffer)</option>
-                            <option value="Rack L-1">Rack L-1 (Epoxy Buffer)</option>
-                            <option value="Rack L-2">Rack L-2 (Epoxy Buffer)</option>
-                            <option value="Rack L-3">Rack L-3 (Epoxy Buffer)</option>
-                            <option value="Rack L-4">Rack L-4 (Epoxy Buffer)</option>
-                            <option value="Rack L-5">Rack L-5 (Epoxy Buffer)</option>
+                            {dropOption('Rack J-01', 'Rack J-01 (Epoxy Buffer)')}
+                            {dropOption('Rack J-02', 'Rack J-02 (Epoxy Buffer)')}
+                            {dropOption('Rack J-03', 'Rack J-03 (Epoxy Buffer)')}
+                            {dropOption('Rack J-04', 'Rack J-04 (Epoxy Buffer)')}
+                            {dropOption('Rack J-05', 'Rack J-05 (Epoxy Buffer)')}
+                            {dropOption('Rack J-06', 'Rack J-06 (Epoxy Buffer)')}
+                            {dropOption('Rack J-08', 'Rack J-08 (Epoxy Buffer)')}
+                            {dropOption('Rack J-10', 'Rack J-10 (Epoxy Buffer)')}
+                            {dropOption('Rack J-11', 'Rack J-11 (Epoxy Buffer)')}
+                            {dropOption('Rack J-12', 'Rack J-12 (Epoxy Buffer)')}
+                            {dropOption('Rack J-15', 'Rack J-15 (Epoxy Buffer)')}
+                            {dropOption('Rack J-16', 'Rack J-16 (Epoxy Buffer)')}
+                            {dropOption('Rack J-17', 'Rack J-17 (Epoxy Buffer)')}
+                            {dropOption('Rack J-18', 'Rack J-18 (Epoxy Buffer)')}
+                            {dropOption('Rack K-1', 'Rack K-1 (Epoxy Buffer)')}
+                            {dropOption('Rack K-2', 'Rack K-2 (Epoxy Buffer)')}
+                            {dropOption('Rack L-1', 'Rack L-1 (Epoxy Buffer)')}
+                            {dropOption('Rack L-2', 'Rack L-2 (Epoxy Buffer)')}
+                            {dropOption('Rack L-3', 'Rack L-3 (Epoxy Buffer)')}
+                            {dropOption('Rack L-4', 'Rack L-4 (Epoxy Buffer)')}
+                            {dropOption('Rack L-5', 'Rack L-5 (Epoxy Buffer)')}
                           </optgroup>
                           <optgroup label="Epoxy Staging Areas (Ready)">
-                            <option value="Coat-Station">Coat-Station (Epoxy Buffer)</option>
+                            {dropOption('Coat-Station', 'Coat-Station (Epoxy Buffer)')}
                           </optgroup>
                           <optgroup label="Core Gantry Loading Doors">
-                            <option value="Door-1">Door-1 (Epoxy Logistics)</option>
-                            <option value="Door-2">Door-2 (Epoxy Logistics)</option>
-                            <option value="Door-3">Door-3 (Epoxy Logistics)</option>
-                            <option value="North-End">North-End Door (Epoxy Logistics)</option>
+                            {dropOption('Door-1', 'Door-1 (Epoxy Logistics)')}
+                            {dropOption('Door-2', 'Door-2 (Epoxy Logistics)')}
+                            {dropOption('Door-3', 'Door-3 (Epoxy Logistics)')}
+                            {dropOption('North-End', 'North-End Door (Epoxy Logistics)')}
                           </optgroup>
                         </>
                       )}

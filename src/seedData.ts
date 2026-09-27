@@ -26,7 +26,7 @@ const RAW_INITIAL_BUNDLES: any[] = [
   {
     id: 'TG-101', tagId: 'TG-101', jobId: 'JOB-01', mark: 'MK-11', grade: 'Epoxy', barSize: '#8', length: 30, weight: 2670, isEpoxy: true,
     route: 'Raw-SW -> Coat-Station -> Shear-Center -> Bender-11-Bender -> Rack J-04 -> Door-1',
-    status: 'COATED', location: 'Rack J-04', updatedAt: at('2026-05-24T12:00:00Z')
+    status: 'RACKED', location: 'Rack J-04', updatedAt: at('2026-05-24T12:00:00Z')
   },
   {
     id: 'TG-102', tagId: 'TG-102', jobId: 'JOB-01', mark: 'MK-12', grade: 'Epoxy', barSize: '#11', length: 40, weight: 5310, isEpoxy: true,

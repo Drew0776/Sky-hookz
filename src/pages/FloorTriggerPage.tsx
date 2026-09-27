@@ -23,10 +23,24 @@ import {
   Search
 } from 'lucide-react';
 import { clickable } from '../utils/clickable';
+import { gradeZoneViolation, isCoated, mixedSurfaceConflict } from '../yardRules';
+import { useDialog } from '../utils/useDialog';
 
 export default function FloorTriggerPage() {
   const { currentRole, currentOperator } = useApp();
   const [bundles, setBundles] = useState<Bundle[]>([]);
+
+  // Why `bundle` can't go to machine `zone` (the server would refuse it), shown in the machine menus so operators
+  // don't have to find out after pressing the button
+  const machineNote = (bundle: Bundle, zone: string): string | null => {
+    const other = mixedSurfaceConflict(bundle, zone, bundles);
+    if (other) return `holds ${isCoated(other) ? 'coated' : 'black'} bar`;
+    return gradeZoneViolation(bundle.grade, zone, bundle.status) ? 'not for this bar' : null;
+  };
+  const machineOption = (bundle: Bundle, zone: string, label: string) => {
+    const note = machineNote(bundle, zone);
+    return <option key={zone} value={zone} disabled={!!note}>{note ? `${label} (${note})` : label}</option>;
+  };
   const [loading, setLoading] = useState(true);
   const [errorBanner, setErrorBanner] = useState<string | null>(null);
   const [successBanner, setSuccessBanner] = useState<string | null>(null);
@@ -1026,6 +1040,7 @@ export default function FloorTriggerPage() {
                         {activeDept === 'shearing' && (
                           <div className="flex items-center gap-2">
                             <select
+                              aria-label="Shear bed for the batch"
                               value={batchShearBed}
                               onChange={(e) => setBatchShearBed(e.target.value)}
                               className="bg-slate-900 text-slate-300 border border-slate-800 rounded-lg px-3 py-1.8 text-xxs font-mono focus:border-amber-500"
@@ -1048,6 +1063,7 @@ export default function FloorTriggerPage() {
                         {activeDept === 'bending' && (
                           <div className="flex items-center gap-2">
                             <select
+                              aria-label="Bender for the batch"
                               value={batchBenderMachine}
                               onChange={(e) => setBatchBenderMachine(e.target.value)}
                               className="bg-slate-900 text-slate-300 border border-slate-800 rounded-lg px-3 py-1.8 text-xxs font-mono focus:border-amber-500"
@@ -1264,16 +1280,17 @@ export default function FloorTriggerPage() {
                       <p className="text-[10px] font-mono text-muted italic">Location: {bundle.location}</p>
                     </div>
                     
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2 min-w-0">
                       <select
+                        aria-label={`Shear bed for ${bundle.tagId}`}
                         value={selectedShear[bundle.id] || ''}
                         onChange={(e) => setSelectedShear({ ...selectedShear, [bundle.id]: e.target.value })}
-                        className="bg-slate-950 text-slate-300 border border-slate-800 rounded-lg px-3 py-1.8 text-xxs font-mono focus:border-amber-500"
+                        className="min-w-0 max-w-full bg-slate-950 text-slate-300 border border-slate-800 rounded-lg px-3 py-1.8 text-xxs font-mono focus:border-amber-500"
                       >
                         <option value="">-- Choose Shear Bed --</option>
-                        <option value="Shear-North">Shear Bed - North</option>
-                        <option value="Shear-Center">Shear Bed - Center</option>
-                        <option value="Shear-South">Shear Bed - South</option>
+                        {machineOption(bundle, 'Shear-North', 'Shear Bed - North')}
+                        {machineOption(bundle, 'Shear-Center', 'Shear Bed - Center')}
+                        {machineOption(bundle, 'Shear-South', 'Shear Bed - South')}
                       </select>
 
                       <button
@@ -1341,18 +1358,19 @@ export default function FloorTriggerPage() {
                         <p className="text-[10px] font-mono text-muted">Currently at Sheared Bed: {bundle.location}</p>
                       </div>
 
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2 min-w-0">
                         <select
+                          aria-label={`Bender for ${bundle.tagId}`}
                           value={selectedBender[bundle.id] || ''}
                           onChange={(e) => setSelectedBender({ ...selectedBender, [bundle.id]: e.target.value })}
-                          className="bg-slate-950 text-slate-300 border border-slate-800 rounded-lg px-3 py-1.8 text-xxs font-mono focus:border-amber-500"
+                          className="min-w-0 max-w-full bg-slate-950 text-slate-300 border border-slate-800 rounded-lg px-3 py-1.8 text-xxs font-mono focus:border-amber-500"
                         >
                           <option value="">-- Select Bender Machine --</option>
-                          <option value="Bender-New-Robo">Bender - New-Robo CNC</option>
-                          <option value="Bender-Old-Robo">Bender - Old-Robo</option>
-                          <option value="Bender-11-Bender">Bender - 11-Bender (HD)</option>
-                          <option value="Bender-SE-Bender">Bender - SE-Bender</option>
-                          <option value="Bender-Radius-Bender">Bender - Radius-Bender</option>
+                          {machineOption(bundle, 'Bender-New-Robo', 'Bender - New-Robo CNC')}
+                          {machineOption(bundle, 'Bender-Old-Robo', 'Bender - Old-Robo')}
+                          {machineOption(bundle, 'Bender-11-Bender', 'Bender - 11-Bender (HD)')}
+                          {machineOption(bundle, 'Bender-SE-Bender', 'Bender - SE-Bender')}
+                          {machineOption(bundle, 'Bender-Radius-Bender', 'Bender - Radius-Bender')}
                         </select>
 
                         <button
@@ -1448,6 +1466,7 @@ interface CncSimulationModalProps {
 }
 
 function CncSimulationModal({ bundle, onClose, onComplete }: CncSimulationModalProps) {
+  const dialogRef = useDialog<HTMLDivElement>(onClose);
   const [progress, setProgress] = useState(0);
   const [angle, setAngle] = useState(0);
   const [coatingTested, setCoatingTested] = useState(false);
@@ -1475,7 +1494,7 @@ function CncSimulationModal({ bundle, onClose, onComplete }: CncSimulationModalP
   const isQcPassed = progress === 100 && coatingTested && pinsMatched && lengthVerified;
 
   return (
-    <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fadeIn" id="cnc-simulation-modal">
+    <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fadeIn" ref={dialogRef} id="cnc-simulation-modal" role="dialog" aria-modal="true" aria-label={`CNC fabrication sequence for ${bundle.tagId}`}>
       <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 space-y-6 shadow-2xl relative overflow-hidden">
         {/* Subtle grid accent */}
         <div className="absolute top-0 right-0 h-1.5 w-full bg-gradient-to-r from-amber-500 to-amber-600"></div>

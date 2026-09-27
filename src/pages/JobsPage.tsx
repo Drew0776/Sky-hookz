@@ -19,6 +19,7 @@ import {
   Eye
 } from 'lucide-react';
 import { clickable } from '../utils/clickable';
+import { isCoated } from '../yardRules';
 
 export default function JobsPage() {
   const { currentRole, currentOperator } = useApp();
@@ -691,6 +692,11 @@ export default function JobsPage() {
                                         </div>
                                       </div>
                                       
+                                      {b.grade === 'Epoxy' && !isCoated(b) ? (
+                                        <p className="text-[10px] font-mono text-amber-400 max-w-sm leading-relaxed">
+                                          {b.tagId} is raw stock that hasn't been through the coat line, so it can't be loaded. Stage it at the coat line first.
+                                        </p>
+                                      ) : (
                                       <div className="flex flex-wrap items-center gap-3">
                                         {/* Status bypass */}
                                         {(b.status === 'BENDING' || b.status === 'RAW') && (
@@ -744,6 +750,7 @@ export default function JobsPage() {
                                           GO OVERRIDE
                                         </button>
                                       </div>
+                                      )}
                                     </div>
                                   </td>
                                 </tr>
