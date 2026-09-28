@@ -27,6 +27,7 @@ All rules live in [`src/yardRules.ts`](src/yardRules.ts) and are shared by the s
 - **Gantry interlocks.** Routes run the runway, then the bridge ([`src/utils/yardMath.ts`](src/utils/yardMath.ts)). A parked crane on the path blocks the move. Each zone is rated at 75,000 lb unless a supervisor sets its own limit on the yard map. Crossing a zone at 60% forces slow mode, and 85% blocks the move. ASTM A934 prefab bundles skip slow mode.
 - **Hard stops.** A bundle that fails coating QC (more than 2% damage in a 1-ft section) is locked in `REJECTED` status and can't move.
 - **Crane handling.** A bundle is set down only from a crane hook, so drops always follow the pickup rules. Each hook carries one load, and nothing is lifted out of a bender until it's marked bent.
+- **Never shows sample data as live.** If the server can't be reached, a banner under the nav bar says so within about 10 seconds, screens keep the last real data they loaded (or show none), and they reload as soon as the server answers again.
 - **Bounded history.** The server keeps the newest 500 activity events and shift notes, and 500 exceptions. Resolved exceptions are dropped first, so an open one is never lost to make room.
 - **UV exposure.** Coated epoxy outdoors for 25 days raises a warning, ahead of the common 30-day covering guidance. ASTM D3963 requires opaque covering once total exposure is expected to exceed two months.
 - **Shifts.** First shift runs 6:00 AM to 4:30 PM in each plant's local time.

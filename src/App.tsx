@@ -8,6 +8,7 @@ import { Switch, Route } from 'wouter';
 import { AppContextProvider } from './context/AppContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import NavBar from './components/NavBar';
+import ConnectionBanner from './components/ConnectionBanner';
 import PageLoader from './components/PageLoader';
 
 // Each console screen loads on demand, so the first page doesn't download every screen's code
@@ -27,6 +28,7 @@ export default function App() {
         <div className="min-h-screen bg-[#0A0F1C] text-slate-100 flex flex-col selection:bg-amber-500 selection:text-slate-950 font-sans antialiased">
           {/* Top Industrial Header Navigation */}
           <NavBar />
+          <ConnectionBanner />
 
           {/* Primary View Area */}
           <main className="flex-1 w-full max-w-7xl mx-auto py-2 xl:py-4">

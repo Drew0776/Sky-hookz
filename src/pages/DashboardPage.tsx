@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { Bundle, DashboardMetrics, Job } from '../types';
-import { INITIAL_BUNDLES, INITIAL_JOBS } from '../seedData';
 import PageLoader from '../components/PageLoader';
 import { computeDashboardMetrics, UV_GUIDANCE } from '../yardRules';
 import { 
@@ -32,6 +31,7 @@ import {
   TrendingUp,
   Zap
 } from 'lucide-react';
+import { RECONNECTED_EVENT } from '../components/ConnectionBanner';
 
 export default function DashboardPage() {
   const { currentRole } = useApp();
@@ -63,22 +63,12 @@ export default function DashboardPage() {
         bData = await bRes.json();
         setBundles(bData);
         gotBundles = true;
-      } else {
-        setBundles(prev => {
-          bData = prev.length ? prev : INITIAL_BUNDLES;
-          return bData;
-        });
       }
 
       if (jRes && jRes.ok) {
         jData = await jRes.json();
         setJobs(jData);
         gotJobs = true;
-      } else {
-        setJobs(prev => {
-          jData = prev.length ? prev : INITIAL_JOBS;
-          return jData;
-        });
       }
 
       if (mRes && mRes.ok) {
@@ -89,21 +79,23 @@ export default function DashboardPage() {
         }
       }
 
-      if (!gotMetrics) {
+      // Work the figures out locally only from real yard data, never from the sample yard
+      if (!gotMetrics && gotBundles && gotJobs) {
         setMetrics(calculateFallbackMetrics(bData, jData));
       }
 
     } catch (err) {
-      console.warn('Network issue fetching metrics, compiling offline metrics:', err);
-      const bList = bundles.length ? bundles : INITIAL_BUNDLES;
-      const jList = jobs.length ? jobs : INITIAL_JOBS;
-      setBundles(bList);
-      setJobs(jList);
-      setMetrics(calculateFallbackMetrics(bList, jList));
+      console.warn('Network issue fetching metrics, keeping the last figures loaded (the connection banner says the server is unreachable):', err);
     } finally {
       setIsLoading(false);
     }
   };
+
+  // After the server was unreachable, reload rather than keep showing what was on screen
+  useEffect(() => {
+    window.addEventListener(RECONNECTED_EVENT, fetchDashboardData);
+    return () => window.removeEventListener(RECONNECTED_EVENT, fetchDashboardData);
+  }, []);
 
   useEffect(() => {
     fetchDashboardData();

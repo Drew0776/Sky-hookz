@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../context/AppContext';
 import { Bundle, Obstruction } from '../types';
-import { INITIAL_BUNDLES, INITIAL_ACTIVITY } from '../seedData';
 import PageLoader from '../components/PageLoader';
 import BundleDetailModal from '../components/BundleDetailModal';
 import RebarBundleIcon from '../components/RebarBundleIcon';
@@ -37,6 +36,7 @@ import { getRouteAnalysisByZones } from '../utils/yardMath';
 import { formatShipDate, getZoneCapacity, gradePlacementViolation, isCoated, liftBlockedReason, OVERLOAD_RATIO, slottingConflict, SLOW_MODE_RATIO } from '../yardRules';
 import { clickable } from '../utils/clickable';
 import { hasOpenDialog } from '../utils/useDialog';
+import { RECONNECTED_EVENT } from '../components/ConnectionBanner';
 
 export default function YardMapPage() {
   const { currentRole, operators } = useApp();
@@ -110,28 +110,26 @@ export default function YardMapPage() {
         setZoneCustomCapacities(await cRes.json());
       }
 
-      let gotBundles = false;
-      let gotActivities = false;
 
       if (bRes && bRes.ok) {
         setBundles(await bRes.json());
-        gotBundles = true;
       }
       if (aRes && aRes.ok) {
         setActivities(await aRes.json());
-        gotActivities = true;
       }
 
-      if (!gotBundles) setBundles(prev => prev.length ? prev : INITIAL_BUNDLES);
-      if (!gotActivities) setActivities(prev => prev.length ? prev : INITIAL_ACTIVITY);
     } catch (err) {
-      console.warn('Network issue loading yard Map data, using local seed fallback:', err);
-      setBundles(prev => prev.length ? prev : INITIAL_BUNDLES);
-      setActivities(prev => prev.length ? prev : INITIAL_ACTIVITY);
+      console.warn('Network issue loading yard Map data, keeping the last data loaded (the connection banner says the server is unreachable):', err);
     } finally {
       setLoading(false);
     }
   };
+
+  // After the server was unreachable, reload rather than keep showing what was on screen
+  useEffect(() => {
+    window.addEventListener(RECONNECTED_EVENT, loadYardBundles);
+    return () => window.removeEventListener(RECONNECTED_EVENT, loadYardBundles);
+  }, []);
 
   const handleActionOnBundle = async (bundleId: string, actionType: string, extraData?: any) => {
     setActionError(null);

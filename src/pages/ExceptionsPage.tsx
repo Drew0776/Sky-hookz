@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { Exception, Bundle } from '../types';
-import { INITIAL_BUNDLES, INITIAL_EXCEPTIONS } from '../seedData';
 import PageLoader from '../components/PageLoader';
 import {
   BarChart,
@@ -24,6 +23,7 @@ import {
   Lock,
   User 
 } from 'lucide-react';
+import { RECONNECTED_EVENT } from '../components/ConnectionBanner';
 
 export default function ExceptionsPage() {
   const { currentRole, currentOperator } = useApp();
@@ -49,28 +49,26 @@ export default function ExceptionsPage() {
         fetch('/api/bundles').catch(() => null)
       ]);
 
-      let gotEx = false;
-      let gotBundles = false;
 
       if (eRes && eRes.ok) {
         setExceptions(await eRes.json());
-        gotEx = true;
       }
       if (bRes && bRes.ok) {
         setBundles(await bRes.json());
-        gotBundles = true;
       }
 
-      if (!gotEx) setExceptions(prev => prev.length ? prev : INITIAL_EXCEPTIONS);
-      if (!gotBundles) setBundles(prev => prev.length ? prev : INITIAL_BUNDLES);
     } catch (err) {
-      console.warn('Network issue fetching exceptions, using local seed fallback:', err);
-      setExceptions(prev => prev.length ? prev : INITIAL_EXCEPTIONS);
-      setBundles(prev => prev.length ? prev : INITIAL_BUNDLES);
+      console.warn('Network issue fetching exceptions, keeping the last data loaded (the connection banner says the server is unreachable):', err);
     } finally {
       setLoading(false);
     }
   };
+
+  // After the server was unreachable, reload rather than keep showing what was on screen
+  useEffect(() => {
+    window.addEventListener(RECONNECTED_EVENT, loadExceptionsData);
+    return () => window.removeEventListener(RECONNECTED_EVENT, loadExceptionsData);
+  }, []);
 
   useEffect(() => {
     loadExceptionsData();
