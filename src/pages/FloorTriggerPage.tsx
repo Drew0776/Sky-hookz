@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { Bundle } from '../types';
-import { INITIAL_BUNDLES } from '../seedData';
 import PageLoader from '../components/PageLoader';
 import BundleDetailModal from '../components/BundleDetailModal';
 import { motion, AnimatePresence } from 'motion/react';
@@ -25,6 +24,7 @@ import {
 import { clickable } from '../utils/clickable';
 import { gradeZoneViolation, isCoated, mixedSurfaceConflict } from '../yardRules';
 import { useDialog } from '../utils/useDialog';
+import { RECONNECTED_EVENT } from '../components/ConnectionBanner';
 
 export default function FloorTriggerPage() {
   const { currentRole, currentOperator } = useApp();
@@ -79,16 +79,19 @@ export default function FloorTriggerPage() {
       const response = await fetch('/api/bundles').catch(() => null);
       if (response && response.ok) {
         setBundles(await response.json());
-      } else {
-        setBundles(prev => prev.length ? prev : INITIAL_BUNDLES);
       }
     } catch (err) {
-      console.warn('Network issue loading floor bundles, using local seed fallback:', err);
-      setBundles(prev => prev.length ? prev : INITIAL_BUNDLES);
+      console.warn('Network issue loading floor bundles, keeping the last data loaded (the connection banner says the server is unreachable):', err);
     } finally {
       setLoading(false);
     }
   };
+
+  // After the server was unreachable, reload rather than keep showing what was on screen
+  useEffect(() => {
+    window.addEventListener(RECONNECTED_EVENT, loadFloorBundles);
+    return () => window.removeEventListener(RECONNECTED_EVENT, loadFloorBundles);
+  }, []);
 
   useEffect(() => {
     loadFloorBundles();

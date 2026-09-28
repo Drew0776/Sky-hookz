@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { Bundle, ActivityEvent, ShiftMessage } from '../types';
-import { INITIAL_BUNDLES, INITIAL_ACTIVITY, INITIAL_SHIFT_MESSAGES } from '../seedData';
 import { isFirstShift, plantLocalHour } from '../yardRules';
 import PageLoader from '../components/PageLoader';
 import { 
@@ -16,6 +15,7 @@ import {
   ArrowRight
 } from 'lucide-react';
 import { useDialog } from '../utils/useDialog';
+import { RECONNECTED_EVENT } from '../components/ConnectionBanner';
 
 export default function LandingPage() {
   const { currentRole, currentOperator, operators } = useApp();
@@ -39,35 +39,29 @@ export default function LandingPage() {
         fetch('/api/shift-messages').catch(() => null)
       ]);
       
-      let gotBundles = false;
-      let gotActivities = false;
-      let gotShiftMsgs = false;
 
       if (bRes && bRes.ok) {
         setBundles(await bRes.json());
-        gotBundles = true;
       }
       if (aRes && aRes.ok) {
         setActivities(await aRes.json());
-        gotActivities = true;
       }
       if (mRes && mRes.ok) {
         setShiftMsgs(await mRes.json());
-        gotShiftMsgs = true;
       }
 
-      if (!gotBundles) setBundles(prev => prev.length ? prev : INITIAL_BUNDLES);
-      if (!gotActivities) setActivities(prev => prev.length ? prev : INITIAL_ACTIVITY);
-      if (!gotShiftMsgs) setShiftMsgs(prev => prev.length ? prev : INITIAL_SHIFT_MESSAGES);
     } catch (err) {
-      console.warn('Network issue loading overview data, using local seed fallback:', err);
-      setBundles(prev => prev.length ? prev : INITIAL_BUNDLES);
-      setActivities(prev => prev.length ? prev : INITIAL_ACTIVITY);
-      setShiftMsgs(prev => prev.length ? prev : INITIAL_SHIFT_MESSAGES);
+      console.warn('Network issue loading overview data, keeping the last data loaded (the connection banner says the server is unreachable):', err);
     } finally {
       setLoading(false);
     }
   };
+
+  // After the server was unreachable, reload rather than keep showing what was on screen
+  useEffect(() => {
+    window.addEventListener(RECONNECTED_EVENT, loadData);
+    return () => window.removeEventListener(RECONNECTED_EVENT, loadData);
+  }, []);
 
   useEffect(() => {
     loadData();

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { Bundle, Job } from '../types';
-import { INITIAL_BUNDLES, INITIAL_JOBS } from '../seedData';
 import PageLoader from '../components/PageLoader';
 import BundleDetailModal from '../components/BundleDetailModal';
 import { useLocation } from 'wouter';
@@ -20,6 +19,7 @@ import {
 } from 'lucide-react';
 import { clickable } from '../utils/clickable';
 import { isCoated } from '../yardRules';
+import { RECONNECTED_EVENT } from '../components/ConnectionBanner';
 
 export default function JobsPage() {
   const { currentRole, currentOperator } = useApp();
@@ -101,28 +101,26 @@ export default function JobsPage() {
         fetch('/api/bundles').catch(() => null)
       ]);
 
-      let gotJobs = false;
-      let gotBundles = false;
 
       if (jRes && jRes.ok) {
         setJobs(await jRes.json());
-        gotJobs = true;
       }
       if (bRes && bRes.ok) {
         setBundles(await bRes.json());
-        gotBundles = true;
       }
 
-      if (!gotJobs) setJobs(prev => prev.length ? prev : INITIAL_JOBS);
-      if (!gotBundles) setBundles(prev => prev.length ? prev : INITIAL_BUNDLES);
     } catch (err) {
-      console.warn('Network issue fetching jobs inventory, using local seed fallback:', err);
-      setJobs(prev => prev.length ? prev : INITIAL_JOBS);
-      setBundles(prev => prev.length ? prev : INITIAL_BUNDLES);
+      console.warn('Network issue fetching jobs inventory, keeping the last data loaded (the connection banner says the server is unreachable):', err);
     } finally {
       setLoading(false);
     }
   };
+
+  // After the server was unreachable, reload rather than keep showing what was on screen
+  useEffect(() => {
+    window.addEventListener(RECONNECTED_EVENT, fetchJobsData);
+    return () => window.removeEventListener(RECONNECTED_EVENT, fetchJobsData);
+  }, []);
 
   useEffect(() => {
     fetchJobsData();
