@@ -21,6 +21,18 @@ import { clickable } from '../utils/clickable';
 import { isCoated } from '../yardRules';
 import { RECONNECTED_EVENT } from '../components/ConnectionBanner';
 
+type BulkAction = 'LOAD' | 'STAGE' | 'SEND_TO_FABRICATION';
+const BULK_ACTION_LABELS: Record<BulkAction, string> = {
+  STAGE: 'Stage',
+  SEND_TO_FABRICATION: 'Send to fabrication',
+  LOAD: 'Load on truck'
+};
+const BULK_ACTION_HINTS: Record<BulkAction, string> = {
+  STAGE: 'Black bar to Raw-SW, epoxy to the coat line',
+  SEND_TO_FABRICATION: 'Black bar to 11-Bender, epoxy to New-Robo',
+  LOAD: 'Black bar out Door-7, epoxy out Door-1'
+};
+
 export default function JobsPage() {
   const { currentRole, currentOperator } = useApp();
   const [, setLoc] = useLocation();
@@ -56,7 +68,8 @@ export default function JobsPage() {
   const [bulkActionSuccess, setBulkActionSuccess] = useState<string | null>(null);
   const [isBulkSubmitting, setIsBulkSubmitting] = useState(false);
 
-  const handleBulkAction = async (action: 'LOAD' | 'STAGE' | 'SEND_TO_FABRICATION') => {
+  const selectedCount = Object.values(selectedBundleIds).filter(Boolean).length;
+  const handleBulkAction = async (action: BulkAction) => {
     setBulkActionErr(null);
     setBulkActionSuccess(null);
     const bundleIds = Object.keys(selectedBundleIds).filter(id => selectedBundleIds[id]);
@@ -80,12 +93,14 @@ export default function JobsPage() {
 
       if (response.ok) {
         const data = await response.json();
-        setBulkActionSuccess(`BATCH COMPLETED: Processed ${data.count} bundles via '${action}' bulk command.`);
+        setBulkActionSuccess(`${BULK_ACTION_LABELS[action]}: ${data.count} of ${bundleIds.length} selected bundles done.`);
+        // The server moves what it can and says why it refused the rest
+        if (data.errors?.length) setBulkActionErr(`${data.errors.length} not moved. ${data.errors.join(' ')}`);
         setSelectedBundleIds({}); // Clear selected checkboxes
         fetchJobsData();
       } else {
-        const errData = await response.json();
-        setBulkActionErr(errData.error || 'Failed to submit batch operations.');
+        const errData = await response.json().catch(() => null);
+        setBulkActionErr(errData?.error || 'Failed to submit batch operations.');
       }
     } catch (err) {
       setBulkActionErr('Network transmission error executing bulk command.');
@@ -441,7 +456,7 @@ export default function JobsPage() {
 
       {/* Exception Notices if any force overrides fail/succeed */}
       {overrideErr && (
-        <div className="bg-rose-500/10 border border-rose-500/20 text-rose-400 p-4 rounded-xl text-xs font-mono flex items-start gap-2 animate-fadeIn">
+        <div role="alert" className="bg-rose-500/10 border border-rose-500/20 text-rose-400 p-4 rounded-xl text-xs font-mono flex items-start gap-2 animate-fadeIn">
           <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5 text-rose-500" />
           <div className="flex-1 font-mono">
             <strong>ADMIN ALARM:</strong> {overrideErr}
@@ -451,12 +466,61 @@ export default function JobsPage() {
       )}
 
       {overrideOk && (
-        <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 p-4 rounded-xl text-xs font-mono flex items-start gap-2 animate-fadeIn">
+        <div role="status" className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 p-4 rounded-xl text-xs font-mono flex items-start gap-2 animate-fadeIn">
           <CheckCircle className="h-4 w-4 shrink-0 mt-0.5 text-emerald-500" />
           <div className="flex-1 font-mono">
             <strong>OVERRIDE COMPLETE:</strong> {overrideOk}
           </div>
           <button onClick={() => setOverrideOk(null)} aria-label="Dismiss message" className="text-muted hover:text-white cursor-pointer select-none">✕</button>
+        </div>
+      )}
+
+      {/* Bulk actions for the bundles ticked in the job tables below */}
+      {selectedCount > 0 && (
+        <div id="bulk-action-bar" role="region" aria-label="Bulk actions" className="sticky top-2 z-20 bg-slate-900/95 backdrop-blur border border-amber-500/30 rounded-xl p-3 flex flex-wrap items-center gap-2 shadow-lg">
+          <span className="text-xs font-mono font-bold text-amber-400 mr-1">{selectedCount} selected</span>
+          {(['STAGE', 'SEND_TO_FABRICATION', 'LOAD'] as BulkAction[])
+            .filter(action => action !== 'LOAD' || currentRole === 'ADMIN')
+            .map(action => (
+              <button
+                key={action}
+                onClick={() => handleBulkAction(action)}
+                disabled={isBulkSubmitting}
+                title={BULK_ACTION_HINTS[action]}
+                className="bg-slate-950 text-slate-200 border border-slate-700 hover:border-amber-500 px-3 py-1.5 rounded-lg text-xxs font-mono font-bold transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {BULK_ACTION_LABELS[action]}
+              </button>
+            ))}
+          <button
+            onClick={() => setSelectedBundleIds({})}
+            className="ml-auto text-xxs font-mono text-slate-400 hover:text-white px-2 py-1.5 cursor-pointer"
+          >
+            Clear selection
+          </button>
+          <p className="basis-full text-[10px] font-mono text-slate-400">
+            Each bundle goes to the place for its grade; the server refuses any move that breaks a yard rule and says why.
+          </p>
+        </div>
+      )}
+
+      {bulkActionErr && (
+        <div role="alert" className="bg-rose-500/10 border border-rose-500/20 text-rose-400 p-4 rounded-xl text-xs font-mono flex items-start gap-2 animate-fadeIn">
+          <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5 text-rose-500" />
+          <div className="flex-1 font-mono">
+            <strong>BULK ACTION:</strong> {bulkActionErr}
+          </div>
+          <button onClick={() => setBulkActionErr(null)} aria-label="Dismiss message" className="text-muted hover:text-white cursor-pointer select-none">✕</button>
+        </div>
+      )}
+
+      {bulkActionSuccess && (
+        <div role="status" className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 p-4 rounded-xl text-xs font-mono flex items-start gap-2 animate-fadeIn">
+          <CheckCircle className="h-4 w-4 shrink-0 mt-0.5 text-emerald-500" />
+          <div className="flex-1 font-mono">
+            <strong>BULK ACTION:</strong> {bulkActionSuccess}
+          </div>
+          <button onClick={() => setBulkActionSuccess(null)} aria-label="Dismiss message" className="text-muted hover:text-white cursor-pointer select-none">✕</button>
         </div>
       )}
 

@@ -249,7 +249,7 @@ export default function CraneCabPage() {
 
       {/* Warning notices */}
       {errorNotice && (
-        <div className="flex items-start gap-2.5 bg-rose-500/10 border border-rose-500/20 text-rose-400 p-4 rounded-xl text-xs font-mono mb-4 animate-fadeIn">
+        <div role="alert" className="flex items-start gap-2.5 bg-rose-500/10 border border-rose-500/20 text-rose-400 p-4 rounded-xl text-xs font-mono mb-4 animate-fadeIn">
           <AlertCircle className="h-4 w-4 shrink-0 mt-0.5 text-rose-500" />
           <div className="flex-1">
             <span className="font-bold">CRANE RIGGING EXCEPTION:</span> {errorNotice}
@@ -259,7 +259,7 @@ export default function CraneCabPage() {
       )}
 
       {successNotice && (
-        <div className="flex items-start gap-2.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 p-4 rounded-xl text-xs font-mono mb-4 animate-fadeIn">
+        <div role="status" className="flex items-start gap-2.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 p-4 rounded-xl text-xs font-mono mb-4 animate-fadeIn">
           <ShieldCheck className="h-4 w-4 shrink-0 mt-0.5 text-emerald-500" />
           <div className="flex-1">
             <span className="font-bold">CONE STATUS LOCKED:</span> {successNotice}

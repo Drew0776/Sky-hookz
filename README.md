@@ -10,9 +10,9 @@ This repository is the main build. [skyhooks](https://github.com/Drew0776/skyhoo
 | --- | --- | --- |
 | `/` | Terminal | Shift overview: live activity stream, stage counts, shift messages |
 | `/crane` | Crane cab | Pick up and drop bundles; every drop goes through the server checks |
-| `/floor` | Floor trigger | Stage bundles at shears, send to benders, mark bends done, export a PDF floor report |
+| `/floor` | Floor trigger | Stage bundles at shears, send to benders (one at a time or as a batch), mark bends done, export a PDF floor report that lists every bundle across as many pages as it needs |
 | `/yard-map` | Yard map | Floorplan with load heatmap, adjustable zone limits and a gantry route planner |
-| `/jobs` | Jobs | Progress per order, down to the bundle |
+| `/jobs` | Jobs | Progress per order, down to the bundle; tick bundles to stage, fabricate or (admins) load them in bulk, with a reason for each one the server refuses |
 | `/exceptions` | Exceptions | Misplaced bars, fabrication errors and coating QC audits |
 | `/dashboard` | Dashboard | Shift throughput in tons, UV exposure and rejection alerts |
 
@@ -27,6 +27,7 @@ All rules live in [`src/yardRules.ts`](src/yardRules.ts) and are shared by the s
 - **Gantry interlocks.** Routes run the runway, then the bridge ([`src/utils/yardMath.ts`](src/utils/yardMath.ts)). A parked crane on the path blocks the move. Each zone is rated at 75,000 lb unless a supervisor sets its own limit on the yard map. Crossing a zone at 60% forces slow mode, and 85% blocks the move. ASTM A934 prefab bundles skip slow mode.
 - **Hard stops.** A bundle that fails coating QC (more than 2% damage in a 1-ft section) is locked in `REJECTED` status and can't move.
 - **Crane handling.** A bundle is set down only from a crane hook, so drops always follow the pickup rules. Each hook carries one load, and nothing is lifted out of a bender until it's marked bent.
+- **The floor only moves bar forward.** Staging, sending to a bender and bulk moves refuse a bundle that's already loaded on a truck (unload it by crane first) or still in a bender (mark it bent first). Machine menus, single or batch, grey out a machine the rules would refuse and say why, and a batch that mixes black and coated bar can't share one machine.
 - **Never shows sample data as live.** If the server can't be reached, a banner under the nav bar says so within about 10 seconds, screens keep the last real data they loaded (or show none), and they reload as soon as the server answers again.
 - **Bounded history.** The server keeps the newest 500 activity events and shift notes, and 500 exceptions. Resolved exceptions are dropped first, so an open one is never lost to make room.
 - **UV exposure.** Coated epoxy outdoors for 25 days raises a warning, ahead of the common 30-day covering guidance. ASTM D3963 requires opaque covering once total exposure is expected to exceed two months.
