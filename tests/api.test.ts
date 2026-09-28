@@ -288,3 +288,23 @@ test('responses turn off type sniffing, and live API data is never cached', asyn
   assert.equal(res.headers.get('x-content-type-options'), 'nosniff');
   assert.equal(res.headers.get('cache-control'), 'no-store');
 });
+
+test('the floor only moves bar forward: nothing comes off a truck or out of a bender mid-bend', async () => {
+  // TG-103 is loaded at Door-2; TG-106 is still in 11-Bender
+  const back = await call('POST', '/api/bundles/TG-103/send-to-bender', { benderId: 'Bender-New-Robo' });
+  assert.equal(back.status, 400);
+  assert.match(back.json.error, /already loaded on a truck at Door-2/);
+  assert.equal((await call('POST', '/api/bundles/TG-103/stage', { location: 'Coat-Station' })).status, 400);
+  const midBend = await call('POST', '/api/bundles/TG-106/stage', { location: 'Shear-Center' });
+  assert.equal(midBend.status, 400);
+  assert.match(midBend.json.error, /still in the bender/);
+
+  // A bulk move takes what it can and says why it left the rest
+  const bulk = await call('POST', '/api/bundles/bulk-action', { bundleIds: ['TG-103', 'TG-104', 'TG-106'], action: 'SEND_TO_FABRICATION' });
+  assert.equal(bulk.status, 200);
+  assert.equal(bulk.json.count, 1);
+  assert.equal(bulk.json.errors.length, 2);
+  assert.equal((await bundle('TG-103')).location, 'Door-2');
+  assert.equal((await bundle('TG-104')).status, 'BENDING');
+  assert.equal((await bundle('TG-106')).location, 'Bender-11-Bender');
+});

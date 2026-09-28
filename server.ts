@@ -7,7 +7,7 @@ import { INITIAL_BUNDLES, INITIAL_JOBS, INITIAL_OPERATORS, INITIAL_EXCEPTIONS, I
 import { zoneCoords } from './src/pages/yardMapData';
 import { getRouteAnalysisByZones } from './src/utils/yardMath';
 import {
-  computeDashboardMetrics, gradePlacementViolation, isValidYardLocation, MAX_ZONE_CAPACITY_LBS, MIN_ZONE_CAPACITY_LBS, liftBlockedReason, movementBlockedReason, rawStockStatus, SHIPPING_DOORS, SW_SHIPPING_DOORS, slottingConflict, slottingViolationMessage, stagedAtAfterMove, statusAfterDrop, statusAfterStaging, isCoated
+  computeDashboardMetrics, gradePlacementViolation, isValidYardLocation, MAX_ZONE_CAPACITY_LBS, MIN_ZONE_CAPACITY_LBS, floorMoveBlockedReason, liftBlockedReason, movementBlockedReason, rawStockStatus, SHIPPING_DOORS, SW_SHIPPING_DOORS, slottingConflict, slottingViolationMessage, stagedAtAfterMove, statusAfterDrop, statusAfterStaging, isCoated
 } from './src/yardRules';
 
 // Store state in-memory so modifications persist during runtime.
@@ -508,7 +508,7 @@ app.post('/api/bundles/:bundleId/stage', (req, res) => {
     res.status(400).json({ error: `Unknown staging location "${location}".` });
     return;
   }
-  const blocked = movementBlockedReason(bundle);
+  const blocked = floorMoveBlockedReason(bundle);
   if (blocked) {
     res.status(400).json({ error: blocked });
     return;
@@ -630,7 +630,7 @@ app.post('/api/bundles/:bundleId/send-to-bender', (req, res) => {
     res.status(400).json({ error: `Unknown bender "${benderId}".` });
     return;
   }
-  const blocked = movementBlockedReason(bundle);
+  const blocked = floorMoveBlockedReason(bundle);
   if (blocked) {
     res.status(400).json({ error: blocked });
     return;
@@ -733,7 +733,8 @@ app.post('/api/bundles/bulk-action', (req, res) => {
       errors.push(`Bundle ${bundleId} not found.`);
       continue;
     }
-    const blocked = movementBlockedReason(bundle);
+    // Loading is the admin override; staging and fabrication only move bar forward
+    const blocked = action === 'LOAD' ? movementBlockedReason(bundle) : floorMoveBlockedReason(bundle);
     if (blocked) {
       errors.push(blocked);
       continue;

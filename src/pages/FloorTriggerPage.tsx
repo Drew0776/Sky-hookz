@@ -24,6 +24,7 @@ import {
 import { clickable } from '../utils/clickable';
 import { gradeZoneViolation, isCoated, mixedSurfaceConflict } from '../yardRules';
 import { useDialog } from '../utils/useDialog';
+import { buildFloorReport, floorReportFileName } from '../utils/floorReport';
 import { RECONNECTED_EVENT } from '../components/ConnectionBanner';
 
 export default function FloorTriggerPage() {
@@ -39,6 +40,19 @@ export default function FloorTriggerPage() {
   };
   const machineOption = (bundle: Bundle, zone: string, label: string) => {
     const note = machineNote(bundle, zone);
+    return <option key={zone} value={zone} disabled={!!note}>{note ? `${label} (${note})` : label}</option>;
+  };
+  // The same for a whole batch: one machine can't take black and coated bar together, and any bundle it refuses blocks the batch
+  const batchMachineNote = (batch: Bundle[], zone: string): string | null => {
+    if (new Set(batch.map(b => isCoated(b))).size > 1) return 'batch mixes black and coated bar';
+    for (const b of batch) {
+      const note = machineNote(b, zone);
+      if (note) return note;
+    }
+    return null;
+  };
+  const batchMachineOption = (batch: Bundle[], zone: string, label: string) => {
+    const note = batchMachineNote(batch, zone);
     return <option key={zone} value={zone} disabled={!!note}>{note ? `${label} (${note})` : label}</option>;
   };
   const [loading, setLoading] = useState(true);
@@ -237,27 +251,38 @@ export default function FloorTriggerPage() {
   };
 
   // Batch action processing handlers
+  /** POSTs `action` for each bundle in turn; returns the counts and, per refusal reason, which tags it stopped. */
+  const runBatch = async (bundleIds: string[], action: string, body: Record<string, string>) => {
+    let successCount = 0;
+    const refused = new Map<string, string[]>();
+    for (const bundleId of bundleIds) {
+      let reason: string;
+      try {
+        const response = await fetch(`/api/bundles/${bundleId}/${action}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        if (response.ok) {
+          successCount++;
+          continue;
+        }
+        const errData = await response.json().catch(() => null);
+        reason = errData?.error || `Server refused (HTTP ${response.status}).`;
+      } catch {
+        reason = 'Network error.';
+      }
+      const tag = bundles.find(b => b.id === bundleId)?.tagId || bundleId;
+      refused.set(reason, [...(refused.get(reason) || []), tag]);
+    }
+    const reasons = [...refused].map(([reason, tags]) => `${tags.join(', ')}: ${reason}`).join(' ');
+    return { successCount, failCount: bundleIds.length - successCount, reasons };
+  };
+
   const handleBatchStageCoating = async (bundleIds: string[]) => {
     clearNotifications();
     setBatchActionLoading(true);
-    let successCount = 0;
-    let failCount = 0;
-    for (const bundleId of bundleIds) {
-      try {
-        const response = await fetch(`/api/bundles/${bundleId}/stage`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            operatorName: currentOperator?.name || 'Powder Coater',
-            location: 'Coat-Station'
-          })
-        });
-        if (response.ok) successCount++;
-        else failCount++;
-      } catch {
-        failCount++;
-      }
-    }
+    const { successCount, failCount, reasons } = await runBatch(bundleIds, 'stage', { operatorName: currentOperator?.name || 'Powder Coater', location: 'Coat-Station' });
     setBatchActionLoading(false);
     setHighlightedGroupKey(null);
     if (successCount > 0) {
@@ -265,7 +290,7 @@ export default function FloorTriggerPage() {
       loadFloorBundles();
     }
     if (failCount > 0) {
-      setErrorBanner(`Failed to process ${failCount} bundles in the batch.`);
+      setErrorBanner(`Failed to stage ${failCount} of ${bundleIds.length} bundles at the coat line. ${reasons}`);
     }
   };
 
@@ -276,24 +301,7 @@ export default function FloorTriggerPage() {
       return;
     }
     setBatchActionLoading(true);
-    let successCount = 0;
-    let failCount = 0;
-    for (const bundleId of bundleIds) {
-      try {
-        const response = await fetch(`/api/bundles/${bundleId}/stage`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            operatorName: currentOperator?.name || 'Shear Operator',
-            location: targetShearBed
-          })
-        });
-        if (response.ok) successCount++;
-        else failCount++;
-      } catch {
-        failCount++;
-      }
-    }
+    const { successCount, failCount, reasons } = await runBatch(bundleIds, 'stage', { operatorName: currentOperator?.name || 'Shear Operator', location: targetShearBed });
     setBatchActionLoading(false);
     setHighlightedGroupKey(null);
     setBatchShearBed('');
@@ -302,7 +310,7 @@ export default function FloorTriggerPage() {
       loadFloorBundles();
     }
     if (failCount > 0) {
-      setErrorBanner(`Failed to shear ${failCount} bundles in the batch.`);
+      setErrorBanner(`Failed to shear ${failCount} of ${bundleIds.length} bundles. ${reasons}`);
     }
   };
 
@@ -313,24 +321,7 @@ export default function FloorTriggerPage() {
       return;
     }
     setBatchActionLoading(true);
-    let successCount = 0;
-    let failCount = 0;
-    for (const bundleId of bundleIds) {
-      try {
-        const response = await fetch(`/api/bundles/${bundleId}/send-to-bender`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            operatorName: currentOperator?.name || 'Bending Specialist',
-            benderId: targetBenderMachine
-          })
-        });
-        if (response.ok) successCount++;
-        else failCount++;
-      } catch {
-        failCount++;
-      }
-    }
+    const { successCount, failCount, reasons } = await runBatch(bundleIds, 'send-to-bender', { operatorName: currentOperator?.name || 'Bending Specialist', benderId: targetBenderMachine });
     setBatchActionLoading(false);
     setHighlightedGroupKey(null);
     setBatchBenderMachine('');
@@ -339,7 +330,7 @@ export default function FloorTriggerPage() {
       loadFloorBundles();
     }
     if (failCount > 0) {
-      setErrorBanner(`Failed to route ${failCount} bundles in the batch.`);
+      setErrorBanner(`Failed to route ${failCount} of ${bundleIds.length} bundles. ${reasons}`);
     }
   };
 
@@ -347,297 +338,13 @@ export default function FloorTriggerPage() {
     try {
       // Load the PDF library only when a report is exported
       const { jsPDF } = await import('jspdf');
-      const doc = new jsPDF({
-        orientation: 'p',
-        unit: 'mm',
-        format: 'a4'
-      });
+      const doc = buildFloorReport(
+        new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' }),
+        bundles,
+        currentOperator?.name || currentRole || 'System Operator'
+      );
 
-      // Colors setup (RGB)
-      const primaryColor = [15, 23, 42]; // Slate 900
-      const accentColor = [245, 158, 11]; // Amber 500
-      const textColor = [51, 65, 85]; // Slate 700
-      const headerTextColor = [255, 255, 255];
-      const lightGray = [241, 245, 249]; // Slate 100
-      const borderGray = [226, 232, 240]; // Slate 200
-
-      // Add accent indicator bar at top
-      doc.setFillColor(accentColor[0], accentColor[1], accentColor[2]);
-      doc.rect(0, 0, 210, 4, 'F');
-
-      let yPos = 15;
-
-      // Header Block
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(15);
-      doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-      doc.text('INDUSTRIAL REBAR MANUFACTURING PROCESS REPORT', 14, yPos);
-      yPos += 6;
-
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(9);
-      doc.setTextColor(100, 116, 139); // Slate 500
-      doc.text('Dynamic Real-Time Plant Floor Inventory Summary Log', 14, yPos);
-      yPos += 10;
-
-      // Add metadata information
-      const timestamp = new Date().toISOString().replace('T', ' ').substring(0, 19) + ' UTC';
-      const operatorName = currentOperator?.name || currentRole || 'System Operator';
-
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(9);
-      doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-      doc.text('REPORT GENERATED:', 14, yPos);
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(textColor[0], textColor[1], textColor[2]);
-      doc.text(timestamp, 51, yPos);
-
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-      doc.text('STATION OPERATOR:', 110, yPos);
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(textColor[0], textColor[1], textColor[2]);
-      doc.text(operatorName, 146, yPos);
-      yPos += 8;
-
-      // Horizontal separator line
-      doc.setDrawColor(borderGray[0], borderGray[1], borderGray[2]);
-      doc.line(14, yPos, 196, yPos);
-      yPos += 8;
-
-      // Statistics Section (Summary KPIs)
-      const totalWeight = bundles.reduce((sum, b) => sum + (b.weight || 0), 0);
-      const totalTons = (totalWeight / 2000).toFixed(2);
-      
-      const countsByStatus = bundles.reduce<Record<string, { count: number; weight: number }>>((acc, b) => {
-        if (!acc[b.status]) acc[b.status] = { count: 0, weight: 0 };
-        acc[b.status].count += 1;
-        acc[b.status].weight += b.weight || 0;
-        return acc;
-      }, {});
-
-      // Draw statistics frames side by side (3 boxes)
-      const boxW = 56;
-      const boxH = 22;
-      const startX = 14;
-
-      // Box 1: Total Bundles on Floor
-      doc.setFillColor(lightGray[0], lightGray[1], lightGray[2]);
-      doc.setDrawColor(borderGray[0], borderGray[1], borderGray[2]);
-      doc.roundedRect(startX, yPos, boxW, boxH, 2, 2, 'FD');
-      // Content Box 1
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(8);
-      doc.setTextColor(100, 116, 139);
-      doc.text('TOTAL BUNDLES ON FLOOR', startX + 4, yPos + 6);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(14);
-      doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-      doc.text(bundles.length.toString(), startX + 4, yPos + 15);
-
-      // Box 2: Total Floor Load (Weight)
-      const secX = startX + boxW + 6;
-      doc.setFillColor(lightGray[0], lightGray[1], lightGray[2]);
-      doc.roundedRect(secX, yPos, boxW + 6, boxH, 2, 2, 'FD');
-      // Content Box 2
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(8);
-      doc.setTextColor(100, 116, 139);
-      doc.text('TOTAL ACTIVE PAYLOAD', secX + 4, yPos + 6);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(14);
-      doc.setTextColor(accentColor[0], accentColor[1], accentColor[2]); // Amber
-      doc.text(`${totalWeight.toLocaleString()} lbs`, secX + 4, yPos + 15);
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8);
-      doc.setTextColor(textColor[0], textColor[1], textColor[2]);
-      doc.text(`(~ ${totalTons} short tons)`, secX + 4, yPos + 19);
-
-      // Box 3: Epoxy vs Black Bar status
-      const thirdX = secX + boxW + 12;
-      const epoxyBundlesCount = bundles.filter(b => b.grade === 'Epoxy').length;
-      const blackBundlesCount = bundles.filter(b => b.grade === 'Black').length;
-
-      doc.setFillColor(lightGray[0], lightGray[1], lightGray[2]);
-      doc.roundedRect(thirdX, yPos, boxW - 2, boxH, 2, 2, 'FD');
-      // Content Box 3
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(8);
-      doc.setTextColor(100, 116, 139);
-      doc.text('GRADE SPLIT (EPOXY / BLACK)', thirdX + 4, yPos + 6);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(13);
-      doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-      doc.text(`${epoxyBundlesCount} Ep  /  ${blackBundlesCount} Bl`, thirdX + 4, yPos + 15);
-
-      yPos += boxH + 10;
-
-      // Status breakdown text
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(9);
-      doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-      doc.text('PRODUCTION FLOW DISTRIBUTION SEGMENTATION:', 14, yPos);
-      yPos += 5;
-
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8);
-      doc.setTextColor(textColor[0], textColor[1], textColor[2]);
-      
-      const statusDistributionText = Object.entries(countsByStatus)
-        .map(([status, val]) => {
-          const stats = val as { count: number; weight: number };
-          return `${status}: ${stats.count} (${stats.weight.toLocaleString()} lbs)`;
-        })
-        .join('  |  ');
-      
-      doc.text(statusDistributionText, 14, yPos);
-      yPos += 8;
-
-      // Horizontal delimiter
-      doc.setDrawColor(borderGray[0], borderGray[1], borderGray[2]);
-      doc.line(14, yPos, 196, yPos);
-      yPos += 7;
-
-      // Section Title: Detailed Inventory Table
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(10);
-      doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-      doc.text('DETAILED MANUFACTURE FLOOR CARDS & BUNDLES LISTING', 14, yPos);
-      yPos += 5;
-
-      // Table Header Row
-      const tableHeaders = ['TAG ID', 'GRADE', 'BAR SIZE', 'LENGTH (FT)', 'WEIGHT (LBS)', 'STATUS', 'LOCATION'];
-      const colX = [14, 42, 64, 86, 110, 138, 168]; // X Positions of columns
-
-      // Draw Header Background
-      doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-      doc.rect(14, yPos, 182, 7, 'F');
-
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(8);
-      doc.setTextColor(headerTextColor[0], headerTextColor[1], headerTextColor[2]);
-      
-      for (let i = 0; i < tableHeaders.length; i++) {
-        doc.text(tableHeaders[i], colX[i] + 2, yPos + 5);
-      }
-      yPos += 7;
-
-      // Sort bundles by status then tagId so it looks nicely organized
-      const sortedBundles = [...bundles].sort((a, b) => {
-        if (a.status !== b.status) return a.status.localeCompare(b.status);
-        return a.tagId.localeCompare(b.tagId);
-      });
-
-      // Draw Rows
-      let isAltRow = false;
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8);
-
-      for (const b of sortedBundles) {
-        // If row goes near page bottom boundary, insert a new page and redraw a simplified table header!
-        if (yPos > 275) {
-          doc.addPage();
-          
-          // top accent bar on next page too
-          doc.setFillColor(accentColor[0], accentColor[1], accentColor[2]);
-          doc.rect(0, 0, 210, 4, 'F');
-          
-          yPos = 15;
-          // Continued header title
-          doc.setFont('helvetica', 'bold');
-          doc.setFontSize(10);
-          doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-          doc.text('DETAILED MANUFACTURE FLOOR LISTING (CONTINUED)', 14, yPos);
-          yPos += 6;
-
-          // Redraw table header on new page
-          doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-          doc.rect(14, yPos, 182, 7, 'F');
-
-          doc.setFont('helvetica', 'bold');
-          doc.setFontSize(8);
-          doc.setTextColor(headerTextColor[0], headerTextColor[1], headerTextColor[2]);
-          for (let i = 0; i < tableHeaders.length; i++) {
-            doc.text(tableHeaders[i], colX[i] + 2, yPos + 5);
-          }
-          yPos += 7;
-          
-          doc.setFont('helvetica', 'normal');
-          doc.setFontSize(8);
-        }
-
-        // Draw Row background if alternating
-        if (isAltRow) {
-          doc.setFillColor(248, 250, 252); // extremely light slate 50
-          doc.rect(14, yPos, 182, 6.5, 'F');
-        }
-        
-        doc.setTextColor(textColor[0], textColor[1], textColor[2]);
-
-        doc.text(b.tagId, colX[0] + 2, yPos + 4.5);
-        doc.text(b.grade, colX[1] + 2, yPos + 4.5);
-        doc.text(b.barSize, colX[2] + 2, yPos + 4.5);
-        doc.text(b.length.toString(), colX[3] + 2, yPos + 4.5);
-        doc.text(`${(b.weight || 0).toLocaleString()}`, colX[4] + 2, yPos + 4.5);
-        
-        // Status highlighting
-        if (b.status === 'BENDING' || b.status === 'STAGED') {
-          doc.setFont('helvetica', 'bold');
-          if (b.status === 'BENDING') {
-            doc.setTextColor(accentColor[0], accentColor[1], accentColor[2]); // Amber
-          } else {
-            doc.setTextColor(99, 102, 241); // Indigo
-          }
-        } else {
-          doc.setFont('helvetica', 'normal');
-          doc.setTextColor(textColor[0], textColor[1], textColor[2]);
-        }
-        doc.text(b.status, colX[5] + 2, yPos + 4.5);
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(textColor[0], textColor[1], textColor[2]);
-
-        const locationStr = b.location ? b.location.replace('Bender-', '').replace('Shear-', '') : 'RAW STORAGE';
-        doc.text(locationStr, colX[6] + 2, yPos + 4.5);
-
-        yPos += 6.5;
-        isAltRow = !isAltRow;
-      }
-
-      // Add Footer details
-      if (yPos > 270) {
-        doc.addPage();
-        doc.setFillColor(accentColor[0], accentColor[1], accentColor[2]);
-        doc.rect(0, 0, 210, 4, 'F');
-        yPos = 15;
-      }
-
-      yPos += 5;
-      doc.setDrawColor(borderGray[0], borderGray[1], borderGray[2]);
-      doc.line(14, yPos, 196, yPos);
-      yPos += 5;
-
-      doc.setFont('helvetica', 'italic');
-      doc.setFontSize(7.5);
-      doc.setTextColor(148, 163, 184); // Slate 400
-      doc.text('Confidential Process Log Sheet - Steel Manufacturing Operations & Logistics Group. Generated via Operator Dashboard.', 14, yPos);
-
-      // Stamp paginated dynamic page footprint markings
-      const totalPages = doc.getNumberOfPages();
-      for (let i = 1; i <= totalPages; i++) {
-        doc.setPage(i);
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(7);
-        doc.setTextColor(148, 163, 184); // Slate 400
-        doc.text(`Page ${i} of ${totalPages}`, 180, 287);
-        
-        // Add footer branding separator
-        doc.setDrawColor(borderGray[0], borderGray[1], borderGray[2]);
-        doc.line(14, 282, 196, 282);
-        doc.text('INDUSTRIAL LOGISTICS OPERATIONAL REPORT', 14, 285);
-      }
-
-      // Save document
-      const fileName = `plant_floor_inventory_report_${new Date().toISOString().substring(0, 10)}.pdf`;
+      const fileName = floorReportFileName();
       doc.save(fileName);
       setSuccessBanner(`Successfully generated and downloaded PDF report: ${fileName}`);
     } catch (err) {
@@ -803,7 +510,7 @@ export default function FloorTriggerPage() {
 
       {/* Warning / Notification blocks */}
       {errorBanner && (
-        <div className="flex items-start gap-2.5 bg-rose-500/10 border border-rose-500/20 text-rose-400 p-4 rounded-xl text-xs font-mono mb-4 animate-fadeIn">
+        <div role="alert" className="flex items-start gap-2.5 bg-rose-500/10 border border-rose-500/20 text-rose-400 p-4 rounded-xl text-xs font-mono mb-4 animate-fadeIn">
           <AlertCircle className="h-4 w-4 shrink-0 mt-0.5 text-rose-500" />
           <div className="flex-1">
             <span className="font-bold">FLOOR CONTROL ALARM:</span> {errorBanner}
@@ -813,7 +520,7 @@ export default function FloorTriggerPage() {
       )}
 
       {successBanner && (
-        <div className="flex items-start gap-2.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 p-4 rounded-xl text-xs font-mono mb-4 animate-fadeIn">
+        <div role="status" className="flex items-start gap-2.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 p-4 rounded-xl text-xs font-mono mb-4 animate-fadeIn">
           <CheckCircle className="h-4 w-4 shrink-0 mt-0.5 text-emerald-500" />
           <div className="flex-1">
             <span className="font-bold">LINE REPORT:</span> {successBanner}
@@ -890,8 +597,9 @@ export default function FloorTriggerPage() {
                 return (
                   <div
                     key={groupKey}
-                    onClick={() => setHighlightedGroupKey(isSelected ? null : groupKey)}
-                    className={`p-3.5 rounded-xl border cursor-pointer select-none transition-all flex flex-col justify-between ${
+                    {...clickable(() => setHighlightedGroupKey(isSelected ? null : groupKey))}
+                    aria-pressed={isSelected}
+                    className={`p-3.5 rounded-xl border cursor-pointer select-none transition-all flex flex-col justify-between focus-visible:outline-2 focus-visible:outline-amber-400 ${
                       isSelected
                         ? 'bg-amber-500/10 border-amber-500 ring-1 ring-amber-500/30 shadow-lg shadow-amber-500/5'
                         : 'bg-slate-950/60 border-slate-800 hover:bg-slate-900/30 hover:border-slate-800'
@@ -1049,9 +757,9 @@ export default function FloorTriggerPage() {
                               className="bg-slate-900 text-slate-300 border border-slate-800 rounded-lg px-3 py-1.8 text-xxs font-mono focus:border-amber-500"
                             >
                               <option value="">-- Choose Shear Bed --</option>
-                              <option value="Shear-North">Shear Bed - North</option>
-                              <option value="Shear-Center">Shear Bed - Center</option>
-                              <option value="Shear-South">Shear Bed - South</option>
+                              {batchMachineOption(activeBatchBundles, 'Shear-North', 'Shear Bed - North')}
+                              {batchMachineOption(activeBatchBundles, 'Shear-Center', 'Shear Bed - Center')}
+                              {batchMachineOption(activeBatchBundles, 'Shear-South', 'Shear Bed - South')}
                             </select>
                             <button
                               onClick={() => handleBatchSendToShear(activeBatchBundles.map(b => b.id), batchShearBed)}
@@ -1072,11 +780,11 @@ export default function FloorTriggerPage() {
                               className="bg-slate-900 text-slate-300 border border-slate-800 rounded-lg px-3 py-1.8 text-xxs font-mono focus:border-amber-500"
                             >
                               <option value="">-- Select Bender Machine --</option>
-                              <option value="Bender-New-Robo">Bender - New-Robo CNC</option>
-                              <option value="Bender-Old-Robo">Bender - Old-Robo</option>
-                              <option value="Bender-11-Bender">Bender - 11-Bender (HD)</option>
-                              <option value="Bender-SE-Bender">Bender - SE-Bender</option>
-                              <option value="Bender-Radius-Bender">Bender - Radius-Bender</option>
+                              {batchMachineOption(activeBatchBundles, 'Bender-New-Robo', 'Bender - New-Robo CNC')}
+                              {batchMachineOption(activeBatchBundles, 'Bender-Old-Robo', 'Bender - Old-Robo')}
+                              {batchMachineOption(activeBatchBundles, 'Bender-11-Bender', 'Bender - 11-Bender (HD)')}
+                              {batchMachineOption(activeBatchBundles, 'Bender-SE-Bender', 'Bender - SE-Bender')}
+                              {batchMachineOption(activeBatchBundles, 'Bender-Radius-Bender', 'Bender - Radius-Bender')}
                             </select>
                             <button
                               onClick={() => handleBatchSendToBender(activeBatchBundles.map(b => b.id), batchBenderMachine)}

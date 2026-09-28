@@ -215,7 +215,7 @@ export default function ExceptionsPage() {
 
       {/* Warning/OK Banners */}
       {errMessage && (
-        <div className="bg-rose-500/10 border border-rose-500/20 text-rose-400 p-4 rounded-xl text-xs font-mono flex items-start gap-2.5 animate-fadeIn">
+        <div role="alert" className="bg-rose-500/10 border border-rose-500/20 text-rose-400 p-4 rounded-xl text-xs font-mono flex items-start gap-2.5 animate-fadeIn">
           <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5 text-rose-500" />
           <div className="flex-1">
             <strong>LOG ACCIDENT SYSTEM ALARM:</strong> {errMessage}
@@ -225,7 +225,7 @@ export default function ExceptionsPage() {
       )}
 
       {okMessage && (
-        <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 p-4 rounded-xl text-xs font-mono flex items-start gap-2.5 animate-fadeIn">
+        <div role="status" className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 p-4 rounded-xl text-xs font-mono flex items-start gap-2.5 animate-fadeIn">
           <CheckCircle className="h-4 w-4 shrink-0 mt-0.5 text-emerald-500" />
           <div className="flex-1 font-mono">
             <strong>FLIGHT CORRECTION LOGGED:</strong> {okMessage}

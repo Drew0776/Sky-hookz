@@ -47,6 +47,16 @@ export function liftBlockedReason(b: Pick<Bundle, 'status' | 'tagId'>): string |
   return movementBlockedReason(b);
 }
 
+/**
+ * Why a floor action (staging, sending to a bender, a bulk move) can't take `b`, or null when it can.
+ * The floor only moves bar forward: a bundle already on a truck is unloaded by crane first, and one
+ * still in a bender is marked bent first.
+ */
+export function floorMoveBlockedReason(b: Pick<Bundle, 'status' | 'tagId' | 'location'>): string | null {
+  if (b.status === 'LOADED') return `Bundle ${b.tagId} is already loaded on a truck at ${b.location}. Unload it with a crane before sending it back to the floor.`;
+  return liftBlockedReason(b);
+}
+
 /* ---------- Grade zoning ---------- */
 
 const SW_BLACK_RACK = /^Rack (J-(19|2[0-5])|L-([6-9]|10))$/;

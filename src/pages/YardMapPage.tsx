@@ -1836,12 +1836,12 @@ export default function YardMapPage() {
 
                       {/* Real-time automation telemetry state feedback banners */}
                       {executionSuccess && (
-                        <div className="mt-3 p-3 border border-emerald-500/15 bg-emerald-500/5 text-emerald-400 text-xxs rounded font-mono leading-relaxed">
+                        <div role="status" className="mt-3 p-3 border border-emerald-500/15 bg-emerald-500/5 text-emerald-400 text-xxs rounded font-mono leading-relaxed">
                           ✓ <span className="font-bold">SYSTEM TELEMETRY UPDATE:</span> {executionSuccess}
                         </div>
                       )}
                       {executionError && (
-                        <div className="mt-3 p-3 border border-rose-500/15 bg-rose-500/5 text-rose-400 text-xxs rounded font-mono leading-relaxed">
+                        <div role="alert" className="mt-3 p-3 border border-rose-500/15 bg-rose-500/5 text-rose-400 text-xxs rounded font-mono leading-relaxed">
                           🛑 <span className="font-bold">TELEMETRY COMPLIANCE REJECTION:</span> {executionError}
                         </div>
                       )}
@@ -2277,7 +2277,7 @@ export default function YardMapPage() {
               {/* CENTER PANE: MAIN CONTENT ELEMENT VIEW */}
               <div className="lg:col-span-9 bg-slate-950 p-6 flex flex-col overflow-hidden">
                 {actionError && (
-                  <div className="mb-4 bg-rose-500/10 border border-rose-500/20 p-3.5 rounded-xl text-xxs text-rose-400 font-bold uppercase tracking-wide flex items-center justify-between">
+                  <div role="alert" className="mb-4 bg-rose-500/10 border border-rose-500/20 p-3.5 rounded-xl text-xxs text-rose-400 font-bold uppercase tracking-wide flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <AlertTriangle className="h-4 w-4 shrink-0" />
                       <span>{actionError}</span>
@@ -2561,7 +2561,7 @@ export default function YardMapPage() {
                         </div>
 
                         <div className="p-2.5 rounded bg-amber-500/5 border border-amber-500/10 text-[10px] text-amber-500/80 font-sans leading-normal">
-                          {capacitySaveError && <span className="block text-rose-400 font-mono mb-1">{capacitySaveError}</span>}
+                          {capacitySaveError && <span role="alert" className="block text-rose-400 font-mono mb-1">{capacitySaveError}</span>}
                           ⚠️ Reducing limit below current residing weight (<span className="font-bold text-amber-400 font-mono">{totalZoneWeight.toLocaleString()} LBS</span>) will immediately trigger RED extreme load floor map status coordinates for this zone.
                         </div>
                       </div>
@@ -2577,12 +2577,12 @@ export default function YardMapPage() {
                         </div>
 
                         {exSubmitSuccess && (
-                          <div className="p-3 bg-emerald-500/15 border border-emerald-500/20 text-emerald-400 rounded-lg text-xxs font-bold uppercase tracking-wide">
+                          <div role="status" className="p-3 bg-emerald-500/15 border border-emerald-500/20 text-emerald-400 rounded-lg text-xxs font-bold uppercase tracking-wide">
                             ✓ {exSubmitSuccess}
                           </div>
                         )}
                         {exSubmitError && (
-                          <div className="p-3 bg-rose-500/15 border border-rose-500/20 text-rose-400 rounded-lg text-xxs font-bold uppercase tracking-wide">
+                          <div role="alert" className="p-3 bg-rose-500/15 border border-rose-500/20 text-rose-400 rounded-lg text-xxs font-bold uppercase tracking-wide">
                             ⚠️ {exSubmitError}
                           </div>
                         )}
